@@ -1,0 +1,57 @@
+{
+  "$comment": "Sponsor bookings. One title_banner and one native_briefing are shown per category per day. A category-specific booking beats an 'all' booking. Dates are inclusive, in NEXT_PUBLIC_DISPLAY_TIMEZONE. Edit and redeploy to change. Optional 'i18n': { 'es': {...}, 'zh': {...} } overrides headline, summary, why_it_matters and cta_label per language.",
+  "sponsors": [
+    {
+      "id": "vellum-tech-banner-sample",
+      "category": "tech",
+      "slot_type": "title_banner",
+      "sponsor_name": "Vellum Compute",
+      "headline": "Vellum Compute",
+      "summary": "Dedicated H200 & Blackwell clusters with zero egress fees for enterprise inference teams.",
+      "why_it_matters": null,
+      "cta_label": "Benchmark Rates ↗",
+      "target_url": "https://example.com/vellum?utm_source=top10hourly&utm_medium=title_banner&utm_campaign=tech",
+      "start_date": "2026-11-01",
+      "end_date": "2026-12-31",
+      "is_active": true,
+      "i18n": {
+        "es": {
+          "summary": "Clústeres dedicados H200 y Blackwell sin cargos de salida para equipos de inferencia empresarial.",
+          "cta_label": "Ver tarifas ↗"
+        },
+        "zh": {
+          "summary": "为企业推理团队提供专属 H200 与 Blackwell 集群，零出口流量费。",
+          "cta_label": "查看价格 ↗"
+        }
+      }
+    },
+    {
+      "id": "acme-all-native-sample",
+      "category": "all",
+      "slot_type": "native_briefing",
+      "sponsor_name": "Acme AI",
+      "headline": "Acme AI cuts month-end close from ten days to two",
+      "summary": "Acme AI's finance agents reconcile ledgers, flag anomalies and draft variance notes automatically. Controllers at 400+ mid-market companies now review exceptions instead of spreadsheets.",
+      "why_it_matters": "Finance teams are reclaiming a week every month for analysis rather than data entry.",
+      "cta_label": "Learn More →",
+      "target_url": "https://example.com/acme?utm_source=top10hourly&utm_medium=native_briefing",
+      "start_date": "2026-11-01",
+      "end_date": "2026-12-31",
+      "is_active": true,
+      "i18n": {
+        "es": {
+          "headline": "Acme AI reduce el cierre contable de diez días a dos",
+          "summary": "Los agentes financieros de Acme AI concilian cuentas, detectan anomalías y redactan notas de variación automáticamente. Más de 400 empresas medianas ya solo revisan las excepciones.",
+          "why_it_matters": "Los equipos financieros recuperan una semana al mes para análisis en lugar de captura de datos.",
+          "cta_label": "Más información →"
+        },
+        "zh": {
+          "headline": "Acme AI 将月末结账从十天缩短至两天",
+          "summary": "Acme AI 的财务智能体可自动对账、标记异常并起草差异说明。400 多家中型企业的财务主管如今只需审核例外情况。",
+          "why_it_matters": "财务团队每月可节省一周时间，用于分析而非录入数据。",
+          "cta_label": "了解更多 →"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+/* Class-based dark mode, toggled on <html> (matches the prototype). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* One geometric sans throughout (Manrope); CJK falls back to the system's Chinese fonts. */
+  --font-sans: var(--font-manrope), system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-serif: var(--font-manrope), system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-mono: var(--font-manrope), system-ui, sans-serif;
+
+  /* Ivory paper. */
+  --color-paper-50: #f2efe6;
+  --color-paper-100: #ebe7dc;
+  --color-paper-200: #e0dbcd;
+  --color-paper-800: #222622;
+  --color-paper-900: #191c19;
+  --color-paper-950: #121512;
+
+  /* Card surfaces (soft UI). */
+  --color-card: #f8f6ef;
+  --color-card-dark: #1b1f1b;
+
+  /* Ink neutrals with a hint of green. */
+  --color-stone-50: #f9f8f4;
+  --color-stone-100: #efede6;
+  --color-stone-200: #e2dfd5;
+  --color-stone-300: #c9c6bb;
+  --color-stone-400: #9d9b92;
+  --color-stone-500: #75746c;
+  --color-stone-600: #56574f;
+  --color-stone-700: #3c3e38;
+  --color-stone-800: #2a2d28;
+  --color-stone-900: #1f221e;
+  --color-stone-950: #121512;
+
+  /* The single accent: forest green → sage (used via the amber-* utilities). */
+  --color-amber-50: #eef2ec;
+  --color-amber-100: #dde6da;
+  --color-amber-200: #c6d4c1;
+  --color-amber-300: #b2c5ab;
+  --color-amber-400: #8fab8a;
+  --color-amber-500: #3f6449;
+  --color-amber-600: #2f5239;
+  --color-amber-700: #284632;
+  --color-amber-800: #213a2a;
+  --color-amber-900: #1b2f22;
+  --color-amber-950: #102017;
+}
+
+body {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.005em;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.story-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.story-card:hover {
+  transform: translateY(-2px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 9999px;
+}
+
+/* Legal pages */
+.prose-legal h2 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+.prose-legal p,
+.prose-legal li {
+  font-size: 0.925rem;
+  line-height: 1.65;
+  margin-top: 0.5rem;
+}
+.prose-legal ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.prose-legal ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+.prose-legal a {
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-card,
+  body {
+    transition: none;
+  }
+  .story-card:hover {
+    transform: none;
+  }
+}
+
+/* Logo badge: slow clockwise rotation (24s per turn). */
+@keyframes slowRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Only the ring of the logo sweeps; the "10" stays upright. One turn a minute. */
+.logo-sweep {
+  animation: slowRotate 60s linear infinite;
+  transform-box: view-box;
+  transform-origin: 50px 50px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo-sweep {
+    animation: none;
+  }
+}
+
+/* ---- Soft UI primitives ---- */
+.soft-card {
+  background: var(--color-card);
+  border-radius: 1.5rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 1px 2px rgba(31, 34, 30, 0.04),
+    0 12px 28px -16px rgba(31, 34, 30, 0.22);
+}
+.dark .soft-card {
+  background: var(--color-card-dark);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 28px -16px rgba(0, 0, 0, 0.7);
+}
+.soft-pill {
+  background: var(--color-card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 1px 2px rgba(31, 34, 30, 0.05),
+    0 6px 16px -10px rgba(31, 34, 30, 0.28);
+}
+.dark .soft-pill {
+  background: var(--color-card-dark);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 6px 16px -10px rgba(0, 0, 0, 0.8);
+}
+.pill-active {
+  background: var(--color-amber-600);
+  color: #f8f6ef;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 8px 18px -10px rgba(47, 82, 57, 0.7);
+}
+.dark .pill-active {
+  background: var(--color-amber-300);
+  color: #121512;
+}
+/* Wide-tracked small-caps labels. CJK text ignores case and gets less tracking. */
+.label-caps {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+:lang(zh) .label-caps {
+  letter-spacing: 0.08em;
+}

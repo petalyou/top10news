@@ -1,0 +1,37 @@
+# Cloudflare Workers config for Top10 Hourly (Next.js via @opennextjs/cloudflare).
+# Deploy: npm run deploy   (or connect the Git repo in Workers & Pages → Workers Builds)
+
+name = "top10-hourly"
+main = "worker.ts"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+# Static files (JS/CSS/fonts and the prerendered legal pages).
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+# Hourly JSON snapshots. Create the bucket first:  npx wrangler r2 bucket create top10-hourly-snapshots
+[[r2_buckets]]
+binding = "SNAPSHOTS"
+bucket_name = "top10-hourly-snapshots"
+
+# Free plan: no Cron Trigger here. A free Worker gets only 10 ms of CPU per run, too little
+# for the hourly ingest, so it runs on GitHub Actions (.github/workflows/hourly-ingest.yml)
+# and uploads the JSON to this bucket. On Workers Paid you can move it back by adding:
+#   [triggers]
+#   crons = ["55 * * * *"]
+#   [limits]
+#   cpu_ms = 300000
+
+[observability]
+enabled = true
+
+# Plain settings. Secrets (only needed if the cron runs in the Worker) are set with
+# `npx wrangler secret put NAME` or in the dashboard, never here.
+[vars]
+SITE_URL = "https://top10hourly.com"
+CONTACT_EMAIL = "yes2mountain@gmail.com"
+NEXT_PUBLIC_DISPLAY_TIMEZONE = "America/New_York"
+EDITION_TIMEZONE = "America/New_York"
+SHOW_SPONSORS = "false"
