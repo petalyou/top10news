@@ -38,7 +38,7 @@ async function main() {
       now: addHours(hour, -5 / 60),
       deps: {
         fetch: async (now = new Date()) => ({ articles: articlesFor(events, now), feedErrors: [] }),
-        dedupe: async () => [],
+        dedupe: async () => ({ groups: [], categories: {} }),
         synthesize: async (_c, clusters) =>
           clusters.map((c) => ({
             headline: `[Demo] ${c.articles[0].title}`,

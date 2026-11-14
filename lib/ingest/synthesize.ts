@@ -111,38 +111,63 @@ export async function synthesizeCategory(category: Category, clusters: Cluster[]
 // Duplicate-event pass: catches same-story clusters that lexical matching missed
 // ---------------------------------------------------------------------------
 
+const TOPICS = ["tech", "finance", "politics", "world", "other"] as const;
+export type Topic = (typeof TOPICS)[number];
+
 const DedupeSchema = z.object({
   groups: z.array(z.array(z.string())).describe("Each inner list holds 2+ ids that report the same underlying event"),
+  categories: z
+    .array(z.object({ id: z.string(), category: z.enum(TOPICS) }))
+    .describe("One entry per cluster id: the section the story belongs in, judged by its content"),
 });
 
-const DEDUPE_SYSTEM = `You deduplicate news story clusters. Each cluster has an id and the headlines that fell into it.
-Clusters are listed under their category; only group clusters within the same category.\nGroup together clusters that report the SAME underlying event (same incident, announcement, decision or market move), even when worded differently.
-Do not group stories that are merely related (e.g. a company's earnings and a separate lawsuit against it). Only output groups of two or more ids; omit clusters that stand alone.`;
+const DEDUPE_SYSTEM = `You are the desk editor sorting news story clusters for an hourly Top 10 briefing. Each cluster has an id and the headlines that fell into it. Clusters are listed under the section of the feed they came from, which is often wrong for general feeds.
+
+Task 1 - categories: for EVERY cluster id, decide the section by what the story is about:
+- tech: technology, AI, software, gadgets, internet platforms' products, cybersecurity, science and space (e.g. rocket launches, NASA, SpaceX missions).
+- finance: markets, the economy, company business news and earnings, deals, jobs data, central banks, crypto.
+- politics: United States government and politics: Congress, the White House, elections, courts, federal and state policy.
+- world: international affairs and other countries' news: diplomacy, wars, foreign governments and elections, global disasters.
+- other: anything else (sports, entertainment, celebrity, lifestyle, weather, local crime). These are left out of the briefing.
+When a story fits two sections, pick the one a reader would look in first (a US tariff vote is politics; its market reaction is finance).
+
+Task 2 - duplicates: group together clusters that report the SAME underlying event (same incident, announcement, decision or market move), even when worded differently, and only when you put them in the same section. Do not group stories that are merely related (e.g. a company's earnings and a separate lawsuit against it). Only output groups of two or more ids.`;
+
+export interface DeskResult {
+  /** Same-event groups (2+ ids, same final category). */
+  groups: string[][];
+  /** Content-based section per cluster id; "other" means leave it out. */
+  categories: Record<string, Topic>;
+}
 
 /**
- * Returns groups of cluster ids that describe the same event, for every category in ONE request
- * (ids are unique across categories). Non-fatal: on any failure it returns [] and the pipeline
- * continues with lexical clusters.
+ * One request for the whole hour: re-files every candidate cluster by content (feeds like BBC's
+ * US & Canada page mix politics with science and sport) and finds same-event duplicates.
+ * Non-fatal: on any failure it returns nothing and the pipeline keeps feed categories and
+ * lexical clusters.
  */
-export async function findDuplicateGroups(byCategory: Partial<Record<Category, Cluster[]>>): Promise<string[][]> {
-  const entries = (Object.entries(byCategory) as [Category, Cluster[]][]).filter(([, cl]) => cl.length >= 2);
-  if (!entries.length) return [];
+export async function findDuplicateGroups(byCategory: Partial<Record<Category, Cluster[]>>): Promise<DeskResult> {
+  const entries = (Object.entries(byCategory) as [Category, Cluster[]][]).filter(([, cl]) => cl.length > 0);
+  if (!entries.length) return { groups: [], categories: {} };
   const prompt = entries
     .map(
       ([category, clusters]) =>
-        `Category: ${CATEGORY_META[category].badge}\n` +
-        clusters.map((c) => `<cluster id="${c.id}">\n${c.articles.slice(0, 4).map((a) => `  - ${a.title}`).join("\n")}\n</cluster>`).join("\n"),
+        `Feed section: ${CATEGORY_META[category].badge}\n` +
+        clusters.map((c) => `<cluster id="${c.id}">\n${c.articles.slice(0, 4).map((a) => `  - [${a.outlet}] ${a.title}`).join("\n")}\n</cluster>`).join("\n"),
     )
     .join("\n\n");
   try {
-    const out = await generateJson({ model: PRIMARY_MODEL, system: DEDUPE_SYSTEM, prompt, schema: DedupeSchema, maxOutputTokens: 4000 });
-    const categoryOf = new Map(entries.flatMap(([cat, cl]) => cl.map((c) => [c.id, cat] as const)));
-    return out.groups
-      .map((g) => g.filter((id) => categoryOf.has(id)))
-      // Never merge across categories.
-      .filter((g) => g.length >= 2 && g.every((id) => categoryOf.get(id) === categoryOf.get(g[0])));
+    const out = await generateJson({ model: PRIMARY_MODEL, system: DEDUPE_SYSTEM, prompt, schema: DedupeSchema, maxOutputTokens: 12_000 });
+    const feedCategory = new Map(entries.flatMap(([cat, cl]) => cl.map((c) => [c.id, cat as Topic] as const)));
+    const categories: Record<string, Topic> = {};
+    for (const { id, category } of out.categories) if (feedCategory.has(id)) categories[id] = category;
+    const finalOf = (id: string) => categories[id] ?? feedCategory.get(id);
+    const groups = out.groups
+      .map((g) => [...new Set(g)].filter((id) => feedCategory.has(id)))
+      .filter((g) => g.length >= 2 && finalOf(g[0]) !== "other" && g.every((id) => finalOf(id) === finalOf(g[0])));
+    return { groups, categories };
   } catch (err) {
-    console.warn("[dedupe] skipped:", err instanceof Error ? err.message : err);
-    return [];
+    console.warn("[desk] skipped:", err instanceof Error ? err.message : err);
+    return { groups: [], categories: {} };
   }
 }

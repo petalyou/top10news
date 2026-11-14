@@ -69,9 +69,23 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
   //    among the top 25 candidates per category, re-score velocity, keep top 10.
   const lexical = clusterArticles(articles);
   const candidates = selectTopClusters(lexical, now, 25);
-  const groups = await dedupeFn(candidates);
+  //    The same request re-files each candidate by content (general feeds mix topics) and
+  //    drops off-topic ones (sport, entertainment...).
+  const desk = await dedupeFn(candidates);
   const candidateIds = new Set(CATEGORIES.flatMap((c) => candidates[c].map((x) => x.id)));
-  const clusters: Cluster[] = mergeClusters(lexical.filter((c) => candidateIds.has(c.id)), groups);
+  const kept = lexical.filter((c) => candidateIds.has(c.id) && desk.categories[c.id] !== "other");
+  for (const c of kept) {
+    const cat = desk.categories[c.id];
+    if (cat && cat !== "other") c.category = cat;
+  }
+  // Remember where each candidate article was filed, so the backfill below can't put it back.
+  const filedAs = new Map<string, string>();
+  for (const c of lexical) {
+    if (!candidateIds.has(c.id)) continue;
+    const where = desk.categories[c.id] ?? c.category;
+    for (const a of c.articles) filedAs.set(a.url, where);
+  }
+  const clusters: Cluster[] = mergeClusters(kept, desk.groups);
   const pool = selectTopClusters(clusters, now, 25);
 
   // 3. Freshness: match candidates to last hour's Top 10. First-time stories get a boost,
@@ -102,7 +116,9 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
         const listed = top[category];
         const usedUrls = new Set(listed.flatMap((c) => c.articles.map((a) => a.url)));
         const fresh = extra[category].filter(
-          (c) => !c.articles.some((a) => usedUrls.has(a.url)) && !listed.some((l) => overlap(c.tokens, l.tokens, 3) >= 0.5),
+          (c) =>
+            !c.articles.some((a) => usedUrls.has(a.url) || (filedAs.has(a.url) && filedAs.get(a.url) !== category)) &&
+            !listed.some((l) => overlap(c.tokens, l.tokens, 3) >= 0.5),
         );
         const add = fresh.slice(0, TOP_N - listed.length);
         const claimed = new Set([...prevFor.values()].filter(Boolean));

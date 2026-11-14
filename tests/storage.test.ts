@@ -20,7 +20,7 @@ const fakeSynth = async (_c: unknown, clusters: { articles: { title: string }[] 
 const deps = (events: typeof BASE_EVENTS) => ({
   fetch: async (n = new Date()) => ({ articles: articlesFor(events, n), feedErrors: [] }),
   synthesize: fakeSynth as never,
-  dedupe: async () => [] as string[][],
+  dedupe: async () => ({ groups: [], categories: {} }),
 });
 
 test("hourly JSON snapshots: immutable files, index, latest, rank diffs, :00 go-live", async () => {

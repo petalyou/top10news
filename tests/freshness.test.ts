@@ -48,7 +48,7 @@ test("a story in the Top 10 for 5 hours drops below a slightly smaller first-tim
   const deps = (events: Ev[]) => ({
     fetch: async (n = new Date()) => ({ articles: articlesFor(events, n), feedErrors: [] }),
     synthesize: synth as never,
-    dedupe: async () => [] as string[][],
+    dedupe: async () => ({ groups: [], categories: {} }),
   });
 
   const h0 = addHours(truncateToHour(new Date()), -10);
@@ -102,7 +102,7 @@ test("a category short of 10 stories is backfilled from a wider 12h window, with
         return { articles: articlesFor(hours > 4 ? [...BASE_EVENTS, ...older] : BASE_EVENTS, n), feedErrors: [] };
       },
       synthesize: (async (_c: unknown, cl: { articles: { title: string }[] }[]) => cl.map((c) => ({ headline: c.articles[0].title, summary: "S.", whyItMatters: "W." }))) as never,
-      dedupe: async () => [] as string[][],
+      dedupe: async () => ({ groups: [], categories: {} }),
     },
   });
   assert.deepEqual(windows, [4, 12]);
