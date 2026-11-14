@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Dictionary } from "@/lib/i18n";
 import type { Story } from "@/lib/types";
 import { BookmarkIcon, ExternalIcon, ShareIcon } from "./icons";
+import { useReveal } from "./useReveal";
 
 /** Stored as "+2" / "-1" / "=" / "NEW"; shown as quiet text: "New" / "↑2" / "↓1" / nothing. */
 function RankChange({ change }: { change: string }) {
@@ -45,11 +46,14 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
   // In compact view a click opens just this card; in expanded view everything is open.
   const [open, setOpen] = useState(false);
   const showBody = !compact || open;
+  const revealRef = useReveal<HTMLElement>();
   const iconBtn =
     "w-8 h-8 rounded-full flex items-center justify-center text-stone-300 hover:text-stone-800 hover:bg-stone-100 dark:text-stone-600 dark:hover:text-stone-100 dark:hover:bg-stone-800 transition";
 
   return (
     <article
+      ref={revealRef}
+      data-reveal="wait"
       id={`rank-${story.rank}`}
       onClick={() => {
         onRead();
@@ -141,7 +145,9 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
             </p>
           )}
 
-          <div className={`${showBody ? "block" : "hidden"} mt-3 space-y-4`}>
+          <div className="unfold" data-open={showBody} inert={!showBody} aria-hidden={!showBody}>
+          <div>
+          <div className="pt-3 space-y-4">
             <p className="text-sm sm:text-[15px] text-stone-600 dark:text-stone-300 leading-relaxed">{story.summary}</p>
 
             <div>
@@ -170,6 +176,8 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
                 </a>
               ))}
             </div>
+          </div>
+          </div>
           </div>
         </div>
       </div>

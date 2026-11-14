@@ -19,6 +19,7 @@ export function BrandBadge({ className = "" }: { className?: string }) {
           strokeWidth="2.6"
           strokeLinecap="round"
           strokeDasharray="246 24.2"
+          className="ring-draw"
           transform="rotate(-82 50 50)"
         />
         <circle cx="50" cy="7" r="4.2" fill="#b2c5ab" />

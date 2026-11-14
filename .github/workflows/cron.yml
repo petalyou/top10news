@@ -1,0 +1,23 @@
+# Alternative scheduler for hosts without hourly cron (e.g. Vercel Hobby, which
+# only allows daily cron jobs). Set repository secrets SITE_URL and CRON_SECRET.
+# If you use this, remove the "crons" block from vercel.json. Duplicate runs are
+# harmless anyway: an hour that already has a snapshot file is skipped.
+name: hourly-ingest
+
+on:
+  schedule:
+    - cron: "55 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Build and publish the next hour's edition
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail-with-body -sS --max-time 300 \
+            -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/hourly-ingest"

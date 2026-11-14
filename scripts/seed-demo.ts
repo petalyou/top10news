@@ -1,6 +1,6 @@
 /**
  * Development only: writes 3 placeholder editions to .data/ built from
- * test fixtures (no RSS or Claude calls), so the UI can be previewed locally.
+ * test fixtures (no RSS or Gemini calls), so the UI can be previewed locally.
  * Usage: npm run db:seed-demo
  */
 import { addHours, truncateToHour } from "../lib/hour";
@@ -42,17 +42,17 @@ async function main() {
         synthesize: async (_c, clusters) =>
           clusters.map((c) => ({
             headline: `[Demo] ${c.articles[0].title}`,
-            summary: `Placeholder summary for local preview, covered by ${c.articles.length} source article(s). Real editions are written by Claude from live feeds.`,
+            summary: `Placeholder summary for local preview, covered by ${c.articles.length} source article(s). Real editions are written by Gemini from live feeds.`,
             whyItMatters: "Demo data: run the hourly ingest with real credentials to replace it.",
             i18n: {
               es: {
                 headline: `[Demo ES] ${c.articles[0].title}`,
-                summary: `Resumen de ejemplo para la vista previa local, con ${c.articles.length} artículo(s) de origen. Las ediciones reales las redacta Claude a partir de fuentes en vivo.`,
+                summary: `Resumen de ejemplo para la vista previa local, con ${c.articles.length} artículo(s) de origen. Las ediciones reales las redacta Gemini a partir de fuentes en vivo.`,
                 whyItMatters: "Datos de demostración: ejecuta la ingesta horaria con credenciales reales para reemplazarlos.",
               },
               zh: {
                 headline: `[演示] ${c.articles[0].title}`,
-                summary: `本地预览用的占位摘要，共 ${c.articles.length} 篇来源文章。正式版本由 Claude 根据实时新闻源撰写。`,
+                summary: `本地预览用的占位摘要，共 ${c.articles.length} 篇来源文章。正式版本由 Gemini 根据实时新闻源撰写。`,
                 whyItMatters: "演示数据：配置真实凭据并运行每小时任务后即会替换。",
               },
             },

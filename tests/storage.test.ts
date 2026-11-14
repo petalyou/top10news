@@ -1,4 +1,4 @@
-/** End-to-end pipeline against the local JSON store (temp dir; no network, no Claude). */
+/** End-to-end pipeline against the local JSON store (temp dir; no network, no Gemini). */
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";

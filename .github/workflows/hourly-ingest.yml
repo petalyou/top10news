@@ -1,0 +1,80 @@
+# Hourly news update for the Cloudflare free plan.
+# The free plan gives a Worker only 10 ms of CPU, too little to parse ~50 feeds, so the
+# ingest runs here on GitHub Actions and uploads the finished JSON to R2 with wrangler.
+# The site Worker only reads from R2.
+#
+# Repository secrets: GEMINI_API_KEY, CLOUDFLARE_API_TOKEN (Workers R2 Storage: Edit),
+# CLOUDFLARE_ACCOUNT_ID. Editions publish 5 AM to midnight Eastern; other hours are skipped.
+name: Hourly ingest
+
+on:
+  schedule:
+    # :40 so GitHub's queue delays still land before the top of the hour. UTC.
+    - cron: "40 * * * *"
+  workflow_dispatch:
+    inputs:
+      hour:
+        description: "Optional hour to (re)build, YYYY-MM-DD-HH in UTC"
+        required: false
+
+concurrency:
+  group: hourly-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BUCKET: top10-hourly-snapshots
+      LOCAL_DATA_DIR: ${{ github.workspace }}/.data
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      EDITION_TIMEZONE: America/New_York
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Pick the hour
+        id: hour
+        env:
+          HOUR_INPUT: ${{ github.event.inputs.hour }}
+        run: |
+          KEY="$HOUR_INPUT"
+          [ -n "$KEY" ] || KEY="$(npx tsx scripts/target-hour.ts)"
+          echo "$KEY" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}$' || { echo "bad hour: $KEY"; exit 1; }
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Download the previous edition from R2
+        run: |
+          mkdir -p .data/snapshots
+          for f in latest.json index.json "${{ steps.hour.outputs.key }}.json"; do
+            npx wrangler r2 object get "$BUCKET/snapshots/$f" --remote --file ".data/snapshots/$f" >/dev/null 2>&1 \
+              && echo "got $f" || { rm -f ".data/snapshots/$f"; echo "no $f yet"; }
+          done
+
+      - name: Build the edition
+        id: ingest
+        env:
+          HOUR_INPUT: ${{ github.event.inputs.hour }}
+          RESULT_FILE: result.json
+        run: |
+          npx tsx scripts/run-ingest.ts $HOUR_INPUT
+          cat result.json
+          echo "status=$(node -p 'require("./result.json").status')" >> "$GITHUB_OUTPUT"
+          echo "key=$(node -p 'require("./result.json").hour')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to R2
+        if: steps.ingest.outputs.status == 'published'
+        run: |
+          put() { npx wrangler r2 object put "$BUCKET/snapshots/$1" --remote --file ".data/snapshots/$1" \
+            --content-type "application/json; charset=utf-8" --cache-control "$2"; }
+          # Hour file first, then the index, then latest, so readers never see a half-published hour.
+          put "${{ steps.ingest.outputs.key }}.json" "public, max-age=31536000, immutable"
+          put index.json "public, max-age=60"
+          put latest.json "public, max-age=60"

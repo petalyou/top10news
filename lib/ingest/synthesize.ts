@@ -1,6 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
+import { GEMINI_FALLBACK_MODEL, GEMINI_MODEL, generateJson } from "./gemini";
 import { CATEGORY_META, type Category, type StoryTranslations } from "../types";
 import type { Cluster } from "./cluster";
 
@@ -11,8 +10,13 @@ export interface Synthesis {
   i18n?: StoryTranslations;
 }
 
-const PRIMARY_MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-5-5";
-const FALLBACK_MODEL = process.env.ANTHROPIC_FALLBACK_MODEL || "claude-sonnet-5-5";
+/**
+ * Gemini request budget per hourly run: 1 duplicate check (all categories at once) + 1 write-up
+ * per category = 5 requests, about 100 a day over the 20 daily editions. Flash-Lite's free tier
+ * allows ~500 a day; the fallback model (also Flash-Lite) is only used when the primary fails.
+ */
+const PRIMARY_MODEL = GEMINI_MODEL;
+const FALLBACK_MODEL = GEMINI_FALLBACK_MODEL;
 
 const OutputSchema = z.object({
   stories: z.array(
@@ -53,26 +57,8 @@ function renderClusters(category: Category, clusters: Cluster[]): string {
   return `Category: ${CATEGORY_META[category].badge}\n\n${blocks.join("\n\n")}`;
 }
 
-let client: Anthropic | null = null;
-const anthropic = () => (client ??= new Anthropic());
-
 async function callModel(model: string, prompt: string) {
-  const isHaiku = model.startsWith("claude-haiku");
-  const response = await anthropic().beta.messages.parse({
-    model,
-    max_tokens: 16000,
-    system: SYSTEM,
-    messages: [{ role: "user", content: prompt }],
-    output_config: { effort: "low", format: betaZodOutputFormat(OutputSchema) },
-    // Server-side refusal fallback where supported (not available for Haiku).
-    ...(isHaiku ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }),
-  });
-  if (response.stop_reason === "refusal") {
-    throw new Error(`refusal (${response.stop_details?.category ?? "uncategorized"}) from ${model}`);
-  }
-  if (response.stop_reason === "max_tokens") throw new Error(`max_tokens reached on ${model}`);
-  if (!response.parsed_output) throw new Error(`unparseable output from ${model}`);
-  return response.parsed_output;
+  return generateJson({ model, system: SYSTEM, prompt, schema: OutputSchema });
 }
 
 type OutputStory = z.infer<typeof OutputSchema>["stories"][number];
@@ -130,31 +116,33 @@ const DedupeSchema = z.object({
 });
 
 const DEDUPE_SYSTEM = `You deduplicate news story clusters. Each cluster has an id and the headlines that fell into it.
-Group together clusters that report the SAME underlying event (same incident, announcement, decision or market move), even when worded differently.
+Clusters are listed under their category; only group clusters within the same category.\nGroup together clusters that report the SAME underlying event (same incident, announcement, decision or market move), even when worded differently.
 Do not group stories that are merely related (e.g. a company's earnings and a separate lawsuit against it). Only output groups of two or more ids; omit clusters that stand alone.`;
 
 /**
- * Returns groups of cluster ids that describe the same event. Non-fatal: on any
- * failure it returns [] and the pipeline continues with lexical clusters.
+ * Returns groups of cluster ids that describe the same event, for every category in ONE request
+ * (ids are unique across categories). Non-fatal: on any failure it returns [] and the pipeline
+ * continues with lexical clusters.
  */
-export async function findDuplicateGroups(category: Category, clusters: Cluster[]): Promise<string[][]> {
-  if (clusters.length < 2) return [];
-  const prompt = clusters
-    .map((c) => `<cluster id="${c.id}">\n${c.articles.slice(0, 4).map((a) => `  - ${a.title}`).join("\n")}\n</cluster>`)
-    .join("\n");
+export async function findDuplicateGroups(byCategory: Partial<Record<Category, Cluster[]>>): Promise<string[][]> {
+  const entries = (Object.entries(byCategory) as [Category, Cluster[]][]).filter(([, cl]) => cl.length >= 2);
+  if (!entries.length) return [];
+  const prompt = entries
+    .map(
+      ([category, clusters]) =>
+        `Category: ${CATEGORY_META[category].badge}\n` +
+        clusters.map((c) => `<cluster id="${c.id}">\n${c.articles.slice(0, 4).map((a) => `  - ${a.title}`).join("\n")}\n</cluster>`).join("\n"),
+    )
+    .join("\n\n");
   try {
-    const response = await anthropic().beta.messages.parse({
-      model: PRIMARY_MODEL,
-      max_tokens: 4000,
-      system: DEDUPE_SYSTEM,
-      messages: [{ role: "user", content: `Category: ${CATEGORY_META[category].badge}\n\n${prompt}` }],
-      output_config: { effort: "low", format: betaZodOutputFormat(DedupeSchema) },
-    });
-    if (response.stop_reason !== "end_turn" || !response.parsed_output) return [];
-    const valid = new Set(clusters.map((c) => c.id));
-    return response.parsed_output.groups.map((g) => g.filter((id) => valid.has(id))).filter((g) => g.length >= 2);
+    const out = await generateJson({ model: PRIMARY_MODEL, system: DEDUPE_SYSTEM, prompt, schema: DedupeSchema, maxOutputTokens: 4000 });
+    const categoryOf = new Map(entries.flatMap(([cat, cl]) => cl.map((c) => [c.id, cat] as const)));
+    return out.groups
+      .map((g) => g.filter((id) => categoryOf.has(id)))
+      // Never merge across categories.
+      .filter((g) => g.length >= 2 && g.every((id) => categoryOf.get(id) === categoryOf.get(g[0])));
   } catch (err) {
-    console.warn(`[dedupe:${category}] skipped:`, err instanceof Error ? err.message : err);
+    console.warn("[dedupe] skipped:", err instanceof Error ? err.message : err);
     return [];
   }
 }

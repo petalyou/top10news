@@ -11,6 +11,7 @@ import { CATEGORIES, type Category, type Edition } from "@/lib/types";
 import { BookmarkIcon, CheckIcon, ClockIcon, CloseIcon, MoonIcon, SunIcon } from "./icons";
 import { CategoryTitleSponsor, SponsoredBriefingCard } from "./sponsors";
 import { StoryCard } from "./StoryCard";
+import { useReveal } from "./useReveal";
 
 // ---------------------------------------------------------------------------
 // Saved bookmarks (localStorage, same key as the prototype)
@@ -88,6 +89,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
   const toastSeq = useRef(0);
+  const finishRef = useReveal<HTMLElement>();
 
   // Times are server-rendered in a fallback zone, then re-labelled in the viewer's own zone once mounted.
   const [localZone, setLocalZone] = useState(false);
@@ -322,12 +324,12 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
       <header className="max-w-3xl mx-auto px-5 sm:px-6 pt-8 sm:pt-14">
         <div className="flex items-start justify-between gap-4">
           <Link href={editionHref(locale, null, category)} className="flex items-center gap-2.5 min-[400px]:gap-3 sm:gap-5 min-w-0" aria-label="Top 10 News Hourly">
-            <BrandBadge className="w-9 h-9 min-[400px]:w-10 min-[400px]:h-10 sm:w-14 sm:h-14" />
+            <BrandBadge className="badge-in w-9 h-9 min-[400px]:w-10 min-[400px]:h-10 sm:w-14 sm:h-14" />
             <span className="min-w-0">
-              <span className="block whitespace-nowrap font-extrabold uppercase tracking-[0.01em] leading-none text-[13px] min-[350px]:text-[15px] min-[380px]:text-lg min-[400px]:text-xl sm:text-3xl md:text-[2.5rem] text-stone-900 dark:text-stone-50">
+              <span style={{ "--d": 120 } as React.CSSProperties} className="rise block whitespace-nowrap font-extrabold uppercase tracking-[0.01em] leading-none text-[13px] min-[350px]:text-[15px] min-[380px]:text-lg min-[400px]:text-xl sm:text-3xl md:text-[2.5rem] text-stone-900 dark:text-stone-50">
                 Top 10 News <span className="text-amber-400 font-bold">/</span> Hourly
               </span>
-              <span className="block mt-2 sm:mt-3 label-caps !text-[9.5px] sm:!text-[11px] !tracking-[0.28em] text-stone-500 dark:text-stone-400">{t.tagline}</span>
+              <span style={{ "--d": 260 } as React.CSSProperties} className="rise block mt-2 sm:mt-3 label-caps !text-[9.5px] sm:!text-[11px] !tracking-[0.28em] text-stone-500 dark:text-stone-400">{t.tagline}</span>
             </span>
           </Link>
 
@@ -356,7 +358,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
         </div>
 
         {/* Edition · next drop · language */}
-        <div className="mt-7 sm:mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs sm:text-[13px] text-stone-500 dark:text-stone-400">
+        <div style={{ "--d": 380 } as React.CSSProperties} className="rise mt-7 sm:mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs sm:text-[13px] text-stone-500 dark:text-stone-400">
           {options.length > 0 && (
             <div className="flex items-center gap-2 min-w-0">
               <ClockIcon className="w-4 h-4 shrink-0" />
@@ -410,7 +412,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
       {/* Sticky category pills */}
       <div className="sticky top-0 z-40 bg-paper-50/85 dark:bg-paper-950/85 backdrop-blur-md mt-6 sm:mt-8">
         <div className="max-w-3xl mx-auto px-5 sm:px-6">
-          <nav aria-label="Categories" className="flex items-center py-3.5 sm:py-4 overflow-x-auto no-scrollbar -mx-1 px-1">
+          <nav aria-label="Categories" style={{ "--d": 480 } as React.CSSProperties} className="rise flex items-center py-3.5 sm:py-4 overflow-x-auto no-scrollbar -mx-1 px-1">
             <div className="flex gap-2.5 sm:gap-3" role="tablist">
               {CATEGORIES.map((cat) => {
                 const active = cat === category;
@@ -440,7 +442,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
       <main className="max-w-3xl mx-auto px-5 sm:px-6 pt-5 sm:pt-7 pb-8">
         {/* Time Machine banner (past editions only) */}
         {edition && !isLatest && latest && (
-          <div className="soft-card mb-6 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+          <div style={{ "--d": 540 } as React.CSSProperties} className="rise soft-card mb-6 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 text-sm text-stone-700 dark:text-stone-200">
               <span className="label-caps !text-[10px] text-amber-600 dark:text-amber-300">{t.timeMachineBadge}</span>
               <span>
@@ -476,7 +478,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 mb-5">
+            <div style={{ "--d": 560 } as React.CSSProperties} className="rise flex flex-wrap items-center justify-between gap-x-4 gap-y-3 mb-5">
               <h1 className="label-caps text-stone-800 dark:text-stone-100">{t.categoryTitle[category]}</h1>
               <div className="flex items-center gap-4">
                 <span className="text-[11px] font-semibold tracking-[0.12em] text-stone-400 dark:text-stone-500 tabular-nums">{t.read(readCount, total)}</span>
@@ -500,7 +502,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
 
             {showSponsors && <CategoryTitleSponsor sponsor={sponsors.titleBanner} label={sponsors.titleBanner ? t.presentedBy(sponsors.titleBanner.sponsorName) : ""} />}
 
-            <section className={compact ? "space-y-3" : "space-y-4"} aria-label={t.categoryTitle[category]}>
+            <section key={category} className={`list-in ${compact ? "space-y-3" : "space-y-4"}`} aria-label={t.categoryTitle[category]}>
               {stories.length === 0 && <p className="text-sm text-stone-500 dark:text-stone-400 py-10 text-center">{t.noStoriesInCategory}</p>}
               {stories.map((story, i) => (
                 <Fragment key={story.id}>
@@ -524,7 +526,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
         )}
 
         {/* Finish line */}
-        <footer className="soft-card mt-10 mb-4 text-center py-10 px-5">
+        <footer ref={finishRef} data-reveal="wait" className="soft-card mt-10 mb-4 text-center py-10 px-5">
           <div className="w-11 h-11 rounded-full pill-active flex items-center justify-center mx-auto mb-4">
             <CheckIcon className="w-5 h-5" />
           </div>

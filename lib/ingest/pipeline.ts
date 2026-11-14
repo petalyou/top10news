@@ -64,11 +64,11 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
   const { articles, feedErrors } = await fetchFn(now, WINDOW_HOURS);
   if (articles.length === 0) return { ...base, status: "skipped_no_articles", feedErrors, durationMs: Date.now() - started };
 
-  // 2. Cluster by headline similarity, then let Claude merge same-event clusters
+  // 2. Cluster by headline similarity, then let Gemini merge same-event clusters (one request)
   //    among the top 25 candidates per category, re-score velocity, keep top 10.
   const lexical = clusterArticles(articles);
   const candidates = selectTopClusters(lexical, now, 25);
-  const groups = (await Promise.all(CATEGORIES.map((c) => dedupeFn(c, candidates[c])))).flat();
+  const groups = await dedupeFn(candidates);
   const candidateIds = new Set(CATEGORIES.flatMap((c) => candidates[c].map((x) => x.id)));
   const clusters: Cluster[] = mergeClusters(lexical.filter((c) => candidateIds.has(c.id)), groups);
   const pool = selectTopClusters(clusters, now, 25);
@@ -112,7 +112,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     }
   }
 
-  // 4. Claude synthesis (categories in parallel).
+  // 4. Gemini write-ups: one request per category, in parallel (4 requests).
   const entries = await Promise.all(
     CATEGORIES.map(async (category) => {
       const ranked = top[category];
