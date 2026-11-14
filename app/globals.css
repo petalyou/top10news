@@ -4,9 +4,11 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* One geometric sans throughout (Manrope); CJK falls back to the system's Chinese fonts. */
-  --font-sans: var(--font-manrope), system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
-  --font-serif: var(--font-manrope), system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  /* Reading text: Figtree (warm, open shapes). Brand wordmark and small caps labels: Manrope.
+     CJK falls back to the system's Chinese fonts. */
+  --font-sans: var(--font-figtree), system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-display: var(--font-manrope), system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-serif: var(--font-figtree), system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   --font-mono: var(--font-manrope), system-ui, sans-serif;
 
   /* Ivory paper. */
@@ -291,6 +293,7 @@ body {
 }
 /* Wide-tracked small-caps labels. CJK text ignores case and gets less tracking. */
 .label-caps {
+  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.22em;

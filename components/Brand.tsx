@@ -24,7 +24,7 @@ export function BrandBadge({ className = "" }: { className?: string }) {
         />
         <circle cx="50" cy="7" r="4.2" fill="#b2c5ab" />
       </g>
-      <text x="50" y="51.5" textAnchor="middle" dominantBaseline="central" fontSize="40" fontWeight="800" letterSpacing="-2" fill="#f8f6ef" className="font-sans">
+      <text x="50" y="51.5" textAnchor="middle" dominantBaseline="central" fontSize="40" fontWeight="800" letterSpacing="-2" fill="#f8f6ef" className="font-display">
         10
       </text>
     </svg>

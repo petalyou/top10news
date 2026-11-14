@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope } from "next/font/google";
+import { Figtree, Manrope } from "next/font/google";
 import { site } from "@/lib/config";
 import "./globals.css";
 
+// Manrope for the wordmark and small caps labels; Figtree (warm, open, very legible) for reading.
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
+const figtree = Figtree({ subsets: ["latin", "latin-ext"], variable: "--font-figtree", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -26,7 +28,7 @@ const themeScript = `(function(){try{var t=localStorage.getItem("top10_theme");i
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${manrope.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${manrope.variable} ${figtree.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

@@ -80,8 +80,8 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3">
             <h2
-              className={`text-[15.5px] sm:text-[17px] font-semibold leading-snug tracking-[-0.01em] transition-colors ${
-                isRead ? "text-stone-500 dark:text-stone-400" : "text-stone-900 dark:text-stone-50"
+              className={`text-[16.5px] sm:text-[18.5px] font-semibold leading-[1.35] tracking-[-0.005em] transition-colors ${
+                isRead ? "text-stone-700 dark:text-stone-300" : "text-stone-950 dark:text-stone-50"
               } group-hover:text-amber-600 dark:group-hover:text-amber-300`}
             >
               {story.headline}
@@ -117,7 +117,7 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
 
           {/* Compact view: a quiet source line so readers can judge credibility and click straight out. */}
           {!showBody && n > 0 && (
-            <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-stone-400 dark:text-stone-500 flex flex-wrap items-center gap-x-2">
+            <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400 flex flex-wrap items-center gap-x-2">
               {story.sources.slice(0, 2).map((src, idx) => (
                 <span key={`${src.outlet}-${idx}`} className="inline-flex items-center gap-2">
                   {idx > 0 && <span aria-hidden="true">·</span>}
@@ -148,16 +148,16 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
           <div className="unfold" data-open={showBody} inert={!showBody} aria-hidden={!showBody}>
           <div>
           <div className="pt-3 space-y-4">
-            <p className="text-sm sm:text-[15px] text-stone-600 dark:text-stone-300 leading-relaxed">{story.summary}</p>
+            <p className="text-[15.5px] sm:text-[16.5px] text-stone-800 dark:text-stone-200 leading-[1.65]">{story.summary}</p>
 
             <div>
               <p className="label-caps !text-[10px] text-amber-600 dark:text-amber-300">{t.whyItMatters}</p>
-              <p className="mt-1.5 text-sm text-stone-800 dark:text-stone-200 leading-relaxed">{story.whyItMatters}</p>
+              <p className="mt-1.5 text-[15px] sm:text-[15.5px] font-medium text-stone-900 dark:text-stone-100 leading-[1.6]">{story.whyItMatters}</p>
             </div>
 
             {/* Source attribution: direct links to the original publishers */}
             <div className="pt-1 flex flex-wrap items-center gap-2">
-              <span className="label-caps !text-[10px] text-stone-400 dark:text-stone-500 mr-1">{t.sources(n)}</span>
+              <span className="label-caps !text-[10px] text-stone-500 dark:text-stone-400 mr-1">{t.sources(n)}</span>
               {story.sources.map((src, idx) => (
                 <a
                   key={`${src.outlet}-${idx}`}
@@ -169,7 +169,7 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
                     e.stopPropagation();
                     onRead();
                   }}
-                  className="soft-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-stone-700 dark:text-stone-200 hover:text-amber-600 dark:hover:text-amber-300 transition"
+                  className="soft-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-stone-800 dark:text-stone-100 hover:text-amber-600 dark:hover:text-amber-300 transition"
                 >
                   {src.outlet}
                   <ExternalIcon className="w-3 h-3 opacity-40" />

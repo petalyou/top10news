@@ -326,7 +326,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
           <Link href={editionHref(locale, null, category)} className="flex items-center gap-2.5 min-[400px]:gap-3 sm:gap-5 min-w-0" aria-label="Top 10 News Hourly">
             <BrandBadge className="badge-in w-9 h-9 min-[400px]:w-10 min-[400px]:h-10 sm:w-14 sm:h-14" />
             <span className="min-w-0">
-              <span style={{ "--d": 120 } as React.CSSProperties} className="rise block whitespace-nowrap font-extrabold uppercase tracking-[0.01em] leading-none text-[13px] min-[350px]:text-[15px] min-[380px]:text-lg min-[400px]:text-xl sm:text-3xl md:text-[2.5rem] text-stone-900 dark:text-stone-50">
+              <span style={{ "--d": 120 } as React.CSSProperties} className="rise block whitespace-nowrap font-display font-extrabold uppercase tracking-[0.01em] leading-none text-[13px] min-[350px]:text-[15px] min-[380px]:text-lg min-[400px]:text-xl sm:text-3xl md:text-[2.5rem] text-stone-900 dark:text-stone-50">
                 Top 10 News <span className="text-amber-400 font-bold">/</span> Hourly
               </span>
               <span style={{ "--d": 260 } as React.CSSProperties} className="rise block mt-2 sm:mt-3 label-caps !text-[9.5px] sm:!text-[11px] !tracking-[0.28em] text-stone-500 dark:text-stone-400">{t.tagline}</span>
