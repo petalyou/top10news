@@ -6,12 +6,23 @@ import type { Story } from "@/lib/types";
 import { BookmarkIcon, ExternalIcon, ShareIcon } from "./icons";
 import { useReveal } from "./useReveal";
 
-/** Stored as "+2" / "-1" / "=" / "NEW"; shown as quiet text: "New" / "↑2" / "↓1" / nothing. */
-function RankChange({ change }: { change: string }) {
+/**
+ * Under the rank: "New" in its first hour in the Top 10, otherwise "Hot" when coverage is
+ * surging, otherwise a quiet ↑2 / ↓1. Unchanged says nothing.
+ */
+function RankBadge({ story, t }: { story: Story; t: Dictionary }) {
+  const change = story.rankChange;
   if (change === "NEW") {
     return (
-      <span title="New in the Top 10 this hour" className="label-caps !text-[8.5px] !tracking-[0.18em] text-amber-500 dark:text-amber-300">
-        New
+      <span title={t.badgeNewTitle} className="label-caps !text-[8.5px] !tracking-[0.18em] text-amber-600 dark:text-amber-300">
+        {t.badgeNew}
+      </span>
+    );
+  }
+  if (story.hot) {
+    return (
+      <span title={t.badgeHotTitle} className="label-caps !text-[8.5px] !tracking-[0.18em] text-[#b4532a] dark:text-[#eba57f]">
+        {t.badgeHot}
       </span>
     );
   }
@@ -27,7 +38,7 @@ function RankChange({ change }: { change: string }) {
       </span>
     );
   }
-  return null; // unchanged: say nothing
+  return null;
 }
 
 interface Props {
@@ -73,7 +84,7 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
             {String(story.rank).padStart(2, "0")}
           </span>
           <span className="mt-1.5 leading-none">
-            <RankChange change={story.rankChange} />
+            <RankBadge story={story} t={t} />
           </span>
         </div>
 

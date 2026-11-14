@@ -47,7 +47,8 @@ test("hourly JSON snapshots: immutable files, index, latest, rank diffs, :00 go-
   const e0 = (await getEdition(k(0)))!;
   const e1 = (await getEdition(k(1)))!;
   const e2 = (await getEdition(k(2)))!;
-  assert.ok(e0.stories.tech.every((s) => s.rankChange === "NEW"));
+  // The very first edition has nothing to compare against, so nothing is labelled NEW.
+  assert.ok(e0.stories.tech.every((s) => s.rankChange === ""));
   const a0 = e0.stories.tech.find((s) => s.headline.includes("AlphaGenome"))!;
   const a1 = e1.stories.tech.find((s) => s.headline.includes("AlphaGenome"))!;
   assert.equal(a1.storyKey, a0.storyKey);
@@ -74,4 +75,14 @@ test("hourly JSON snapshots: immutable files, index, latest, rank diffs, :00 go-
   // Backfilling an older hour doesn't move latest.json backwards.
   await runHourlyIngest({ hour: addHours(h0, -1), now: addHours(h0, -1.1), deps: deps(BASE_EVENTS) });
   assert.equal(JSON.parse(await readFile(path.join(dir, "snapshots/latest.json"), "utf8")).key, toHourKey(next));
+});
+
+test("after the overnight pause, the 5 AM edition compares against midnight (no NEW flood)", async () => {
+  const { readPreviousEdition } = await import("../lib/storage");
+  const base = addHours(truncateToHour(new Date()), -60);
+  await runHourlyIngest({ hour: base, now: addHours(base, -5 / 60), deps: deps(BASE_EVENTS) });
+  const fiveHoursLater = addHours(base, 5);
+  // latest.json here is a newer hour from the earlier test, so this exercises the index fallback.
+  assert.equal((await readPreviousEdition(fiveHoursLater))?.key, toHourKey(base));
+  assert.equal(await readPreviousEdition(addHours(base, 20)), null);
 });

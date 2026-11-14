@@ -32,8 +32,10 @@ export interface Story {
   id: string;
   category: Category;
   rank: number;
-  /** "NEW" | "=" | "+N" | "-N" */
+  /** "NEW" (first hour in the Top 10) | "=" | "+N" | "-N" | "" (no earlier edition to compare) */
   rankChange: string;
+  /** Unusually fast coverage right now (see lib/ingest/hot.ts). Never set together with NEW. */
+  hot?: boolean;
   headline: string;
   summary: string;
   whyItMatters: string;

@@ -11,7 +11,9 @@ export interface RankMatch {
 /** Minimum headline-token overlap to treat a cluster as the same event as last hour. */
 const MATCH_THRESHOLD = 0.5;
 
-export function formatRankChange(prevRank: number | null, newRank: number): string {
+export function formatRankChange(prevRank: number | null, newRank: number, hasPrevious = true): string {
+  // With no earlier edition to compare against (the very first one), nothing is "new".
+  if (!hasPrevious) return "";
   if (prevRank == null) return "NEW";
   const delta = prevRank - newRank; // moved up => positive
   if (delta === 0) return "=";

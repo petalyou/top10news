@@ -69,6 +69,7 @@ test("velocity ranking puts multi-outlet, top-tier, recent stories first", () =>
 
 test("rank change formatting", () => {
   assert.equal(formatRankChange(null, 3), "NEW");
+  assert.equal(formatRankChange(null, 3, false), "");
   assert.equal(formatRankChange(4, 2), "+2");
   assert.equal(formatRankChange(1, 2), "-1");
   assert.equal(formatRankChange(5, 5), "=");

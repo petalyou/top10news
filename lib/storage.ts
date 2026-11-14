@@ -11,6 +11,7 @@
  */
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { toHourKey as editionKeyOf } from "./hour";
 import type { Edition } from "./types";
 
 export const LATEST_KEY = "snapshots/latest.json";
@@ -144,6 +145,26 @@ export function readEdition(hourKey: string) {
 export async function readEditionUncached(hourKey: string): Promise<Edition | null> {
   const raw = await (await backend()).get(editionObjectKey(hourKey));
   return raw ? (JSON.parse(raw) as Edition) : null;
+}
+
+/**
+ * The newest edition published before `hour`, for rank changes and NEW/HOT badges. Usually the
+ * previous hour; after the overnight pause it's the midnight edition. Reads latest.json first
+ * (the only earlier file the GitHub job downloads), then the index. Null if the gap is too long.
+ */
+export async function readPreviousEdition(hour: Date, maxGapHours = 8): Promise<Edition | null> {
+  const b = await backend();
+  const hourKey = editionKeyOf(hour);
+  const parse = (raw: string | null) => (raw ? (JSON.parse(raw) as Edition) : null);
+  let prev = parse(await b.get(LATEST_KEY));
+  if (!prev || prev.key >= hourKey) {
+    const index: string[] = JSON.parse((await b.get(INDEX_KEY)) ?? "[]");
+    const k = index.find((x) => x < hourKey);
+    prev = k ? parse(await b.get(editionObjectKey(k))) : null;
+  }
+  if (!prev) return null;
+  const gapHours = (hour.getTime() - Date.parse(prev.snapshotHour)) / 3_600_000;
+  return gapHours > 0 && gapHours <= maxGapHours ? prev : null;
 }
 
 export async function editionExists(hourKey: string) {

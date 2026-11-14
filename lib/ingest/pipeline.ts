@@ -1,5 +1,5 @@
 import { addHours, isEditionHour, toHourKey, truncateToHour } from "../hour";
-import { editionExists, publishEdition, readEditionUncached, storageMode } from "../storage";
+import { editionExists, publishEdition, readPreviousEdition, storageMode } from "../storage";
 import { CATEGORIES, type Category, type Edition, type Story } from "../types";
 import { clusterArticles, mergeClusters, pickSources, selectTopClusters, type Cluster } from "./cluster";
 import { overlap } from "./text";
@@ -8,6 +8,7 @@ import { formatRankChange, matchPrevious } from "./diff";
 import { firstSeenFor, freshnessMultiplier, hoursInTop } from "./freshness";
 import { fetchArticles } from "./fetch";
 import { findDuplicateGroups, synthesizeCategory } from "./synthesize";
+import { pickHot } from "./hot";
 
 export interface IngestResult {
   hour: string;
@@ -75,7 +76,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
 
   // 3. Freshness: match candidates to last hour's Top 10. First-time stories get a boost,
   //    stories past their grace period (3h by default) decay. Then cut to the final 10.
-  const previous = await readEditionUncached(toHourKey(addHours(hour, -1)));
+  const previous = await readPreviousEdition(hour);
   const top = {} as Record<Category, Cluster[]>;
   const prevFor = new Map<Cluster, Story | null>();
   for (const category of CATEGORIES) {
@@ -117,11 +118,14 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     CATEGORIES.map(async (category) => {
       const ranked = top[category];
       const texts = await synthesizeFn(category, ranked);
+      const changes = ranked.map((c, i) => formatRankChange(prevFor.get(c)?.rank ?? null, i + 1, previous != null));
+      const hot = pickHot(ranked, changes, now);
       const stories = ranked.map<Story>((c, i) => ({
         id: `${key}-${category}-${i + 1}`,
         category,
         rank: i + 1,
-        rankChange: formatRankChange(prevFor.get(c)?.rank ?? null, i + 1),
+        rankChange: changes[i],
+        ...(hot[i] ? { hot: true } : {}),
         storyKey: prevFor.get(c)?.storyKey ?? randomUUID(),
         firstSeen: firstSeenFor(prevFor.get(c) ?? null, key),
         headline: texts[i].headline,

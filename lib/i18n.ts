@@ -34,6 +34,10 @@ export interface Dictionary {
   snapshotLocked: (date: string) => string;
   read: (n: number, total: number) => string;
   whyItMatters: string;
+  badgeNew: string;
+  badgeNewTitle: string;
+  badgeHot: string;
+  badgeHotTitle: string;
   sources: (n: number) => string;
   readMark: string;
   bookmark: string;
@@ -97,6 +101,10 @@ const en: Dictionary = {
   snapshotLocked: (d) => `Snapshot locked ${d} · Ranked by multi-source velocity`,
   read: (n, t) => `${n}/${t} read`,
   whyItMatters: "Why it matters:",
+  badgeNew: "New",
+  badgeNewTitle: "First hour in the Top 10",
+  badgeHot: "Hot",
+  badgeHotTitle: "Many newsrooms are covering this right now",
   sources: (n) => `${n} ${n === 1 ? "Source" : "Sources"}:`,
   readMark: "✓ Read",
   bookmark: "Bookmark story",
@@ -160,6 +168,10 @@ const es: Dictionary = {
   snapshotLocked: (d) => `Edición cerrada el ${d} · Clasificada por velocidad multifuente`,
   read: (n, t) => `${n}/${t} leídas`,
   whyItMatters: "Por qué importa:",
+  badgeNew: "Nuevo",
+  badgeNewTitle: "Primera hora en el Top 10",
+  badgeHot: "Hot",
+  badgeHotTitle: "Muchos medios lo están cubriendo ahora mismo",
   sources: (n) => `${n} ${n === 1 ? "fuente" : "fuentes"}:`,
   readMark: "✓ Leída",
   bookmark: "Guardar noticia",
@@ -223,6 +235,10 @@ const zh: Dictionary = {
   snapshotLocked: (d) => `快照锁定于 ${d} · 按多来源传播速度排名`,
   read: (n, t) => `已读 ${n}/${t}`,
   whyItMatters: "为何重要：",
+  badgeNew: "新",
+  badgeNewTitle: "首次进入十大",
+  badgeHot: "热",
+  badgeHotTitle: "众多媒体正在报道",
   sources: (n) => `${n} 个来源：`,
   readMark: "✓ 已读",
   bookmark: "收藏",
