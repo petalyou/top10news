@@ -2,7 +2,7 @@ import { addHours, isEditionHour, toHourKey, truncateToHour } from "../hour";
 import { editionExists, publishEdition, readPreviousEdition, storageMode } from "../storage";
 import { CATEGORIES, type Category, type Edition, type Story } from "../types";
 import { clusterArticles, mergeClusters, pickSources, sameEventGroups, selectTopClusters, type Cluster } from "./cluster";
-import { dedupeWritten } from "./final-dedupe";
+import { crossCategoryDedupe, dedupeWritten } from "./final-dedupe";
 import { overlap } from "./text";
 import { randomUUID } from "node:crypto";
 import { formatRankChange, matchPrevious } from "./diff";
@@ -117,6 +117,9 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     adjusted.sort((a, b) => b.s - a.s || b.c.distinctOutlets - a.c.distinctOutlets || b.c.newestAt.getTime() - a.c.newestAt.getTime());
     top[category] = adjusted.slice(0, TOP_N + SPARES).map((x) => x.c);
   }
+
+  // 3a. One tab per story: drop copies of the same article that landed in other categories.
+  for (const [url, cat] of crossCategoryDedupe(top)) filedAs.set(url, cat);
 
   // 3b. Backfill: on a slow news hour (or when feeds fail) a category can have fewer than
   //     10 distinct stories in the 4h window. Widen to 12h for that category only and append

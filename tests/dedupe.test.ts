@@ -152,3 +152,17 @@ test("Gemini's same_event_as answer is read into sameAs", async () => {
     globalThis.fetch = realFetch;
   }
 });
+
+test("the same article in three feed sections shows in only one tab", async () => {
+  const hour = addHours(truncateToHour(new Date()), -40);
+  const starship: Ev = { category: "world", titles: ["SpaceX catches Starship rocket stage using mechanical arms"], outlets: [O("BBC News", 1)], minutesAgo: 6 };
+  const evs: Ev[] = [starship, { ...starship, category: "politics" }, { ...starship, category: "tech" }];
+  await runHourlyIngest({
+    hour, now: addHours(hour, -5 / 60),
+    // The content re-filing didn't run, so each copy stays in its feed's section.
+    deps: { fetch: async (n = new Date()) => ({ articles: articlesFor([...evs, ...filler(12)], n), feedErrors: [] }), synthesize: synth as never, dedupe: async () => ({ groups: [], categories: {} }) },
+  });
+  const e = (await readEditionUncached(toHourKey(hour)))!;
+  const tabs = (Object.keys(e.stories) as (keyof typeof e.stories)[]).filter((c) => e.stories[c].some((s) => /Starship/.test(s.headline)));
+  assert.equal(tabs.length, 1);
+});
