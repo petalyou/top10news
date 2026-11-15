@@ -45,6 +45,7 @@ For each story cluster you receive (headlines and short teasers from several pub
 Rules:
 - Use only facts present in the provided material. Do not invent numbers, names, quotes or outcomes. If the material is thin, stay general rather than guess.
 - Keep a neutral, non-partisan tone; describe political claims as claims.
+- If a cluster mixes an earlier event with a newer development about it, lead with the newest development.
 - Return one entry per cluster id, using the ids exactly as given.`;
 
 /** Clusters are numbered by their position in the full ranked list (c1..c10), even in a partial retry. */
@@ -134,7 +135,7 @@ Task 1 - categories: for EVERY cluster id, decide the section by what the story 
 - other: anything else (sports, entertainment, celebrity, lifestyle, weather, local crime). These are left out of the briefing.
 When a story fits two sections, pick the one a reader would look in first (a US tariff vote is politics; its market reaction is finance).
 
-Task 2 - duplicates: group together clusters that report the SAME underlying event (same incident, announcement, decision or market move), even when worded differently, and only when you put them in the same section. Do not group stories that are merely related (e.g. a company's earnings and a separate lawsuit against it). Only output groups of two or more ids.`;
+Task 2 - duplicates: group together clusters that report the SAME underlying event (same incident, announcement, decision or market move), even when worded differently, and only when you put them in the same section. Do not group stories that are merely related (e.g. a company's earnings and a separate lawsuit against it). A follow-up development is a separate event: reactions, petitions, support or backlash, investigations, a successor being named, or market fallout after the original news each stay in their own cluster, even though they share the same people and company. Only output groups of two or more ids.`;
 
 export interface DeskResult {
   /** Same-event groups (2+ ids, same final category). */

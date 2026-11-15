@@ -26,7 +26,7 @@ const FEED_HEADERS = {
   Accept: "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8",
 };
 
-async function downloadFeed(url: string): Promise<string> {
+export async function downloadFeed(url: string): Promise<string> {
   const res = await fetch(url, { headers: FEED_HEADERS, redirect: "follow", signal: AbortSignal.timeout(10_000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.text();

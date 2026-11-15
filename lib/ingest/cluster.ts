@@ -1,7 +1,7 @@
 import { TIER_WEIGHT } from "../feeds";
 import type { Category } from "../types";
 import type { Article } from "./fetch";
-import { overlap, tokens } from "./text";
+import { eventSimilarity, jaccard, overlap, tokens } from "./text";
 
 export interface Cluster {
   id: string;
@@ -50,7 +50,10 @@ export function clusterArticles(articles: Article[]): Cluster[] {
       let bestSim = 0;
       local.forEach((c, i) => {
         if (overlap(t, c.seed) < SEED_THRESHOLD) return;
-        const sim = Math.max(...c.members.map((m) => overlap(t, m.t)));
+        // One outlet rarely runs the same event twice: a second, differently worded headline from
+        // the same outlet is usually a follow-up, so it starts its own story.
+        if (c.members.some((m) => m.a.outlet === a.outlet && m.a.url !== a.url && jaccard(t, m.t) < 0.6)) return;
+        const sim = Math.max(...c.members.map((m) => eventSimilarity(t, m.t)));
         if (sim >= JOIN_THRESHOLD && sim > bestSim) {
           best = i;
           bestSim = sim;
@@ -157,7 +160,7 @@ export function mergeClusters(clusters: Cluster[], groups: string[][]): Cluster[
 
 /**
  * Same-category clusters that are plainly one event: they share an article URL (the same story
- * syndicated in two feeds, e.g. BBC's US and World pages), or their headlines overlap heavily.
+ * syndicated in two feeds, e.g. BBC's US and World pages), or two of their headlines nearly match.
  * Clustering runs per feed section, so after stories are re-filed by content these pairs can end
  * up side by side in one category; this merges them without needing the model.
  */
@@ -174,11 +177,15 @@ export function sameEventGroups(clusters: Cluster[]): string[][] {
       else urls.set(key, c.id);
     }
   }
+  // Headline test is per article pair, never on the clusters' pooled words: pooled words make a
+  // follow-up look like the original because they share the names.
+  const titleTokens = clusters.map((c) => c.articles.map((a) => tokens(a.title)));
   for (let i = 0; i < clusters.length; i++) {
     for (let j = i + 1; j < clusters.length; j++) {
       const a = clusters[i];
       const b = clusters[j];
-      if (a.category === b.category && overlap(a.tokens, b.tokens, 4) >= 0.75) union(a.id, b.id);
+      if (a.category !== b.category) continue;
+      if (titleTokens[i].some((x) => titleTokens[j].some((y) => jaccard(x, y) >= 0.6))) union(a.id, b.id);
     }
   }
   const groups = new Map<string, string[]>();

@@ -41,6 +41,27 @@ export function intersectionSize(a: Set<string>, b: Set<string>): number {
   return n;
 }
 
+/** Jaccard similarity |A∩B| / |A∪B|: low when two headlines share names but say different things. */
+export function jaccard(a: Set<string>, b: Set<string>): number {
+  if (!a.size || !b.size) return 0;
+  const n = intersectionSize(a, b);
+  return n / (a.size + b.size - n);
+}
+
+/**
+ * Two headlines report the same event: their wording mostly matches overall (Jaccard >= 0.45), or
+ * one is nearly contained in the other with 4+ shared words. Sharing only the names
+ * ("Nvidia", "Jensen Huang", "resign") is not enough, so a follow-up such as executives rallying
+ * behind Huang stays apart from the resignation itself. Returns 0 when not the same event.
+ */
+export function eventSimilarity(a: Set<string>, b: Set<string>): number {
+  const n = intersectionSize(a, b);
+  if (n < 2) return 0;
+  const j = n / (a.size + b.size - n);
+  const m = n / Math.min(a.size, b.size);
+  return j >= 0.45 || (n >= 4 && m >= 0.75) ? Math.max(j, m) : 0;
+}
+
 /** Overlap coefficient |A∩B| / min(|A|,|B|), requiring at least `minShared` shared tokens. */
 export function overlap(a: Set<string>, b: Set<string>, minShared = 2): number {
   if (!a.size || !b.size) return 0;

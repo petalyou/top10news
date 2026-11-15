@@ -85,3 +85,22 @@ test("merge keeps the earlier identity so a carried-over story isn't relabelled 
   assert.equal(r.clusters[0].articles.length, 2);
   assert.equal(prevFor.get(r.clusters[0])?.storyKey, "old");
 });
+
+test("follow-up developments stay separate from the original story; true duplicates still merge", async () => {
+  const { clusterArticles, sameEventGroups } = await import("../lib/ingest/cluster");
+  const { sameHeadline } = await import("../lib/ingest/final-dedupe");
+  const t0 = new Date("2026-11-15T00:00:00Z");
+  const mk = (outlet: string, title: string, url: string) =>
+    ({ outlet, tier: 1 as const, category: "tech" as const, title, url, teaser: "", publishedAt: t0 });
+  const original = mk("New York Times", "Nvidia CEO Jensen Huang Resigns Following Concealed Relationship", "https://nyt.x/a");
+  const followUp = mk("New York Times", "Tech executives rally behind Jensen Huang following Nvidia resignation", "https://nyt.x/b");
+  const tcFollowUp = mk("TechCrunch", "Tech leaders sign letter backing Jensen Huang after Nvidia resignation", "https://tc.x/c");
+  const paraphrase = mk("Bloomberg", "Nvidia CEO Jensen Huang resigns", "https://bb.x/d");
+  const clusters = clusterArticles([original, followUp, tcFollowUp, paraphrase]);
+  const home = (url: string) => clusters.find((c) => c.articles.some((a) => a.url === url))!.id;
+  assert.notEqual(home(original.url), home(followUp.url));
+  assert.equal(home(original.url), home(paraphrase.url));
+  assert.deepEqual(sameEventGroups(clusters), []);
+  assert.equal(sameHeadline("Nvidia CEO Jensen Huang resigns after concealed relationship", "Tech executives rally behind Jensen Huang after Nvidia resignation"), false);
+  assert.equal(sameHeadline("Nvidia CEO Jensen Huang resigns after concealed relationship", "Nvidia CEO Jensen Huang resigns after a concealed relationship"), true);
+});

@@ -1,13 +1,13 @@
 import type { Story } from "../types";
 import type { Cluster } from "./cluster";
 import type { Synthesis } from "./synthesize";
-import { overlap, tokens } from "./text";
+import { jaccard, tokens } from "./text";
 
 /** Two written headlines describe the same story: identical once normalised, or nearly so. */
 export function sameHeadline(a: string, b: string): boolean {
   const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   if (norm(a) === norm(b)) return true;
-  return overlap(tokens(a), tokens(b), 4) >= 0.8;
+  return jaccard(tokens(a), tokens(b)) >= 0.6;
 }
 
 /**

@@ -10,6 +10,7 @@ import { firstSeenFor, freshnessMultiplier, hoursInTop } from "./freshness";
 import { fetchArticles } from "./fetch";
 import { findDuplicateGroups, synthesizeCategory, type Synthesis } from "./synthesize";
 import { pickHot } from "./hot";
+import { fetchTrends, trendFor, trendMultiplier, type Trend } from "./trends";
 
 export interface IngestResult {
   hour: string;
@@ -21,6 +22,8 @@ export interface IngestResult {
   clusterCount: number;
   storyCounts: Record<Category, number>;
   feedErrors: { outlet: string; url: string; error: string }[];
+  /** Google Trends check: how many trending searches were read, and which ones matched a published story. */
+  trends?: { fetched: number; matched: string[] };
   durationMs: number;
 }
 
@@ -46,12 +49,15 @@ export interface IngestDeps {
   fetch?: typeof fetchArticles;
   synthesize?: typeof synthesizeCategory;
   dedupe?: typeof findDuplicateGroups;
+  trends?: () => Promise<Trend[]>;
 }
 
 export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: IngestDeps } = {}): Promise<IngestResult> {
   const fetchFn = opts.deps?.fetch ?? fetchArticles;
   const synthesizeFn = opts.deps?.synthesize ?? synthesizeCategory;
   const dedupeFn = opts.deps?.dedupe ?? findDuplicateGroups;
+  // Tests that stub the feeds also stay off the network for Trends unless they pass their own.
+  const trendsFn = opts.deps?.trends ?? (opts.deps?.fetch ? async () => [] : fetchTrends);
   const started = Date.now();
   const now = opts.now ?? new Date();
   const hour = opts.hour ?? targetHourFor(now);
@@ -67,7 +73,8 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
   if (await editionExists(key)) return { ...base, status: "skipped_already_published", durationMs: Date.now() - started };
 
   // 1. Fetch whitelisted feeds (last 4 hours).
-  const { articles, feedErrors } = await fetchFn(now, WINDOW_HOURS);
+  //    Google Trends is read alongside, as a ranking signal only.
+  const [{ articles, feedErrors }, trends] = await Promise.all([fetchFn(now, WINDOW_HOURS), trendsFn().catch(() => [] as Trend[])]);
   if (articles.length === 0) return { ...base, status: "skipped_no_articles", feedErrors, durationMs: Date.now() - started };
 
   // 2. Cluster by headline similarity, then let Gemini merge same-event clusters (one request)
@@ -104,7 +111,8 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     const prevs = matchPrevious(cands, previous?.stories[category] ?? []);
     const adjusted = cands.map((c, i) => {
       prevFor.set(c, prevs[i]);
-      return { c, s: c.score * freshnessMultiplier(hoursInTop(prevs[i], key)) };
+      // Stories people are searching for on Google right now rank higher.
+      return { c, s: c.score * freshnessMultiplier(hoursInTop(prevs[i], key)) * trendMultiplier(trendFor(c, trends)) };
     });
     adjusted.sort((a, b) => b.s - a.s || b.c.distinctOutlets - a.c.distinctOutlets || b.c.newestAt.getTime() - a.c.newestAt.getTime());
     top[category] = adjusted.slice(0, TOP_N + SPARES).map((x) => x.c);
@@ -139,6 +147,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
   //    only the missing stories if needed). A story Gemini couldn't write is left out; a category
   //    with nothing written keeps the previous edition's list, so one bad answer never blocks the hour.
   const fallbackCategories: Category[] = [];
+  const matched = new Set<string>();
   let wroteAny = false;
   const entries = await Promise.all(
     CATEGORIES.map(async (category) => {
@@ -158,7 +167,9 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
       }
       if (ranked.length) wroteAny = true;
       const changes = ranked.map((c, i) => formatRankChange(prevFor.get(c)?.rank ?? null, i + 1, previous != null));
-      const hot = pickHot(ranked, changes, now);
+      const trending = ranked.map((c) => trendFor(c, trends));
+      trending.forEach((t) => t && matched.add(t.query));
+      const hot = pickHot(ranked, changes, now, trending.map(Boolean));
       const stories = ranked.map<Story>((c, i) => ({
         id: `${key}-${category}-${i + 1}`,
         category,
@@ -197,6 +208,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     clusterCount: clusters.length,
     storyCounts: Object.fromEntries(entries.map(([c, list]) => [c, list.length])) as Record<Category, number>,
     feedErrors,
+    trends: { fetched: trends.length, matched: [...matched] },
     durationMs: Date.now() - started,
   };
 }
