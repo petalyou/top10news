@@ -84,5 +84,7 @@ test("after the overnight pause, the 5 AM edition compares against midnight (no 
   const fiveHoursLater = addHours(base, 5);
   // latest.json here is a newer hour from the earlier test, so this exercises the index fallback.
   assert.equal((await readPreviousEdition(fiveHoursLater))?.key, toHourKey(base));
-  assert.equal(await readPreviousEdition(addHours(base, 20)), null);
+  // Missed overnight runs (10 PM -> 7 AM) still compare against the last edition.
+  assert.equal((await readPreviousEdition(addHours(base, 9)))?.key, toHourKey(base));
+  assert.equal(await readPreviousEdition(addHours(base, 31)), null);
 });

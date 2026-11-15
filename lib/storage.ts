@@ -150,9 +150,10 @@ export async function readEditionUncached(hourKey: string): Promise<Edition | nu
 /**
  * The newest edition published before `hour`, for rank changes and NEW/HOT badges. Usually the
  * previous hour; after the overnight pause it's the midnight edition. Reads latest.json first
- * (the only earlier file the GitHub job downloads), then the index. Null if the gap is too long.
+ * (the only earlier file the GitHub job downloads), then the index. Null only if the last edition
+ * is more than 30 hours old, so missed overnight runs still get NEW/HOT badges.
  */
-export async function readPreviousEdition(hour: Date, maxGapHours = 8): Promise<Edition | null> {
+export async function readPreviousEdition(hour: Date, maxGapHours = 30): Promise<Edition | null> {
   const b = await backend();
   const hourKey = editionKeyOf(hour);
   const parse = (raw: string | null) => (raw ? (JSON.parse(raw) as Edition) : null);
