@@ -5,6 +5,7 @@ import type { Dictionary } from "@/lib/i18n";
 import type { Story } from "@/lib/types";
 import { BookmarkIcon, ExternalIcon, ShareIcon } from "./icons";
 import { useReveal } from "./useReveal";
+import { FlameIcon, LeafIcon } from "./BadgeIcons";
 
 /**
  * Under the rank: "New" in its first hour in the Top 10, otherwise "Hot" when coverage is
@@ -14,14 +15,16 @@ function RankBadge({ story, t }: { story: Story; t: Dictionary }) {
   const change = story.rankChange;
   if (change === "NEW") {
     return (
-      <span title={t.badgeNewTitle} className="label-caps !text-[8.5px] !tracking-[0.18em] text-amber-600 dark:text-amber-300">
+      <span title={t.badgeNewTitle} className="label-caps !text-[8.5px] !tracking-[0.18em] inline-flex items-center gap-[3px] whitespace-nowrap text-amber-600 dark:text-amber-300">
+        <LeafIcon className="w-[11px] h-[11px] shrink-0" />
         {t.badgeNew}
       </span>
     );
   }
   if (story.hot) {
     return (
-      <span title={t.badgeHotTitle} className="label-caps !text-[8.5px] !tracking-[0.18em] text-[#b4532a] dark:text-[#eba57f]">
+      <span title={t.badgeHotTitle} className="label-caps !text-[8.5px] !tracking-[0.18em] inline-flex items-center gap-[3px] whitespace-nowrap text-[#b4532a] dark:text-[#eba57f]">
+        <FlameIcon className="w-[11px] h-[11px] shrink-0" />
         {t.badgeHot}
       </span>
     );
@@ -75,7 +78,7 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
     >
       <div className="flex items-start gap-4 sm:gap-5">
         {/* Rank & movement */}
-        <div className="flex flex-col items-start shrink-0 w-8 pt-[3px]">
+        <div className="flex flex-col items-start shrink-0 w-10 pt-[3px]">
           <span
             className={`text-[15px] sm:text-base font-extrabold tabular-nums leading-none ${
               story.rank <= 3 ? "text-amber-600 dark:text-amber-300" : "text-stone-300 dark:text-stone-600"

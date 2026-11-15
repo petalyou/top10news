@@ -153,6 +153,49 @@ body {
   min-height: 0;
 }
 
+/* Badge icons: HOT flame flickers (outer and inner tongues on different beats), NEW leaf sways. */
+.badge-flame .flame-outer,
+.badge-flame .flame-inner {
+  transform-box: fill-box;
+  transform-origin: 50% 95%;
+}
+.badge-flame .flame-outer {
+  animation: flameFlicker 1.7s ease-in-out infinite;
+}
+.badge-flame .flame-inner {
+  fill: #e0894f;
+  animation: flameFlickerInner 1.1s ease-in-out infinite;
+}
+.dark .badge-flame .flame-inner {
+  fill: #f6c9a4;
+}
+@keyframes flameFlicker {
+  0%, 100% { transform: scale(1, 1) skewX(0); }
+  25% { transform: scale(0.96, 1.06) skewX(-3deg); }
+  50% { transform: scale(1.03, 0.95) skewX(2deg); }
+  75% { transform: scale(0.98, 1.04) skewX(-1deg); }
+}
+@keyframes flameFlickerInner {
+  0%, 100% { transform: scale(1, 1) translateY(0); }
+  40% { transform: scale(0.9, 1.12) translateY(-0.3px); }
+  70% { transform: scale(1.05, 0.92); }
+}
+.badge-leaf .leaf-sway {
+  transform-box: fill-box;
+  transform-origin: 20% 90%;
+  animation: leafSway 3.2s ease-in-out infinite;
+}
+.badge-leaf .leaf-rib {
+  stroke: #8fab8a;
+}
+.dark .badge-leaf .leaf-rib {
+  stroke: #dfe8da;
+}
+@keyframes leafSway {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(8deg); }
+}
+
 /* The story list cross-fades when switching category or view. */
 @keyframes listIn {
   from {
@@ -222,6 +265,9 @@ body {
   }
   .rise,
   .badge-in,
+  .badge-flame .flame-outer,
+  .badge-flame .flame-inner,
+  .badge-leaf .leaf-sway,
   .ring-draw,
   .list-in {
     animation: none;
