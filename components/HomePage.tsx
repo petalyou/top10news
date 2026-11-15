@@ -5,7 +5,7 @@ import { getEdition, getLiveEdition, listEditionKeys } from "@/lib/editions";
 import { formatFullDate, formatOptionLabel, formatTimeLabel, parseHourKey } from "@/lib/hour";
 import type { Locale } from "@/lib/i18n";
 import { getAllActiveSponsors } from "@/lib/sponsors";
-import { CATEGORIES, isCategory, localizeStory, type Category, type Edition } from "@/lib/types";
+import { CATEGORIES, DEFAULT_CATEGORY, isCategory, localizeStory, type Category, type Edition } from "@/lib/types";
 
 export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -17,7 +17,7 @@ export async function HomePage({ locale, searchParams }: { locale: Locale; searc
   const params = await searchParams;
   const tParam = first(params.t);
   const cParam = first(params.c);
-  const category: Category = isCategory(cParam) ? cParam : "tech";
+  const category: Category = isCategory(cParam) ? cParam : DEFAULT_CATEGORY;
   const requested = parseHourKey(tParam) ? tParam! : null;
 
   const [raw, keys] = await Promise.all([requested ? getEdition(requested) : getLiveEdition(), listEditionKeys()]);

@@ -7,7 +7,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { formatEditionWindow, formatFullDate, formatOptionLabel, formatTimeLabel, nextEditionTime, parseHourKey } from "@/lib/hour";
 import { getDictionary, LOCALE_LABEL, LOCALE_NAME, LOCALE_TAG, LOCALES, localePath, type Locale } from "@/lib/i18n";
 import type { ActiveSponsors } from "@/lib/sponsors";
-import { CATEGORIES, type Category, type Edition } from "@/lib/types";
+import { CATEGORIES, DEFAULT_CATEGORY, type Category, type Edition } from "@/lib/types";
 import { BookmarkIcon, CheckIcon, ChevronDownIcon, ClockIcon, CloseIcon, MoonIcon, SunIcon } from "./icons";
 import { FlipText } from "./FlipText";
 import { CategoryTitleSponsor, SponsoredBriefingCard } from "./sponsors";
@@ -60,7 +60,7 @@ function secondsToNextHour(): number {
 function editionHref(locale: Locale, key: string | null, category: Category, hash = "") {
   const qs = new URLSearchParams();
   if (key) qs.set("t", key);
-  if (category !== "tech" || key) qs.set("c", category);
+  if (category !== DEFAULT_CATEGORY || key) qs.set("c", category);
   const s = qs.toString();
   return `${localePath(locale)}${s ? `?${s}` : ""}${hash}`;
 }

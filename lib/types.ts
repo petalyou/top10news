@@ -1,5 +1,7 @@
-export const CATEGORIES = ["tech", "finance", "politics", "world"] as const;
+/** Tab order; the first is the default tab. */
+export const CATEGORIES = ["finance", "tech", "politics", "world"] as const;
 export type Category = (typeof CATEGORIES)[number];
+export const DEFAULT_CATEGORY: Category = CATEGORIES[0];
 
 export const CATEGORY_META: Record<Category, { title: string; badge: string }> = {
   tech: { title: "Top 10 Tech & AI", badge: "Tech & AI" },
