@@ -26,6 +26,8 @@ export interface Dictionary {
   latestSuffix: string;
   selectEdition: string;
   nextDrop: string;
+  /** Tag that fades in briefly when a new edition loads. */
+  newEdition: string;
   nextShort: string;
   savedStories: string;
   toggleTheme: string;
@@ -94,6 +96,7 @@ const en: Dictionary = {
   latestSuffix: " (Latest)",
   selectEdition: "Select an edition",
   nextDrop: "Next drop",
+  newEdition: "New edition",
   nextShort: "Next",
   savedStories: "Saved stories",
   toggleTheme: "Toggle appearance",
@@ -162,6 +165,7 @@ const es: Dictionary = {
   latestSuffix: " (Última)",
   selectEdition: "Elige una edición",
   nextDrop: "Próxima edición",
+  newEdition: "Nueva edición",
   nextShort: "Próxima",
   savedStories: "Noticias guardadas",
   toggleTheme: "Cambiar apariencia",
@@ -230,6 +234,7 @@ const zh: Dictionary = {
   latestSuffix: "（最新）",
   selectEdition: "选择一期",
   nextDrop: "下一期",
+  newEdition: "新一期",
   nextShort: "下一期",
   savedStories: "已收藏",
   toggleTheme: "切换外观",

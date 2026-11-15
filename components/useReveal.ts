@@ -14,6 +14,13 @@ const MAX_STAGGER_STEPS = 8;
 const DURATION_MS = 800;
 
 let observer: IntersectionObserver | null = null;
+/** Reveals wait until this time, so a new edition's stories glide in after its header effects. */
+let holdUntil = 0;
+
+/** Delay reveals that start in the next `ms` milliseconds until those `ms` have passed. */
+export function holdReveals(ms: number) {
+  holdUntil = Date.now() + ms;
+}
 
 function getObserver(): IntersectionObserver {
   if (observer) return observer;
@@ -24,7 +31,7 @@ function getObserver(): IntersectionObserver {
         if (!entry.isIntersecting) continue;
         const el = entry.target as HTMLElement;
         observer!.unobserve(el);
-        const delay = Math.min(step++, MAX_STAGGER_STEPS) * STAGGER_MS;
+        const delay = Math.max(0, holdUntil - Date.now()) + Math.min(step++, MAX_STAGGER_STEPS) * STAGGER_MS;
         el.style.transitionDelay = `${delay}ms`;
         el.dataset.reveal = "shown";
         // Hand back to the normal (fast) hover transitions once the entrance is over.

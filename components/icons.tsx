@@ -57,3 +57,9 @@ export const ExternalIcon = ({ className = "w-3 h-3" }: P) => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 3h7v7m0-7L10 14M5 7v12h12v-5" />
   </svg>
 );
+
+export const ChevronDownIcon = ({ className = "w-3.5 h-3.5" }: P) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 9l6 6 6-6" />
+  </svg>
+);

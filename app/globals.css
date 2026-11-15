@@ -196,6 +196,94 @@ body {
   50% { transform: rotate(8deg); }
 }
 
+/* New-edition arrival: the time flips like a departures board, a green line sweeps under it,
+   the live dot pulses and a "New edition" tag shows briefly. Plays on load and on each new hour. */
+.flip-char {
+  display: inline-block;
+  transform-origin: 50% 55%;
+  backface-visibility: hidden;
+  animation: flipIn 0.62s var(--ease-out-soft) both;
+  animation-delay: calc(450ms + var(--i, 0) * 60ms);
+}
+@keyframes flipIn {
+  0% {
+    opacity: 0;
+    transform: perspective(240px) rotateX(-100deg);
+  }
+  55% {
+    opacity: 1;
+    transform: perspective(240px) rotateX(14deg);
+  }
+  80% {
+    transform: perspective(240px) rotateX(-5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.edition-sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 2px;
+  border-radius: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--color-amber-400) 15%, var(--color-amber-400) 85%, transparent);
+  transform-origin: left center;
+  animation: editionSweep 1.25s var(--ease-out-soft) 0.75s both;
+}
+@keyframes editionSweep {
+  0% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  60% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+.dot-pulse {
+  animation: dotPulse 1.4s ease-out 0.9s 2 both;
+}
+@keyframes dotPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-amber-400) 70%, transparent);
+  }
+  25% {
+    transform: scale(1.9);
+    filter: brightness(1.35);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 9px color-mix(in oklab, var(--color-amber-400) 0%, transparent);
+  }
+}
+.new-edition-tag {
+  animation: newTag 4.5s ease both;
+}
+@keyframes newTag {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translateY(3px) scale(0.94);
+  }
+  28%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* The story list cross-fades when switching category or view. */
 @keyframes listIn {
   from {
@@ -269,6 +357,10 @@ body {
   .badge-flame .flame-inner,
   .badge-leaf .leaf-sway,
   .ring-draw,
+  .flip-char,
+  .edition-sweep,
+  .dot-pulse,
+  .new-edition-tag,
   .list-in {
     animation: none;
   }
@@ -295,6 +387,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .logo-sweep {
     animation: none;
+  }
+  .edition-sweep {
+    display: none;
   }
 }
 

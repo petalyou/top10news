@@ -8,10 +8,11 @@ import { formatEditionWindow, formatFullDate, formatOptionLabel, formatTimeLabel
 import { getDictionary, LOCALE_LABEL, LOCALE_NAME, LOCALE_TAG, LOCALES, localePath, type Locale } from "@/lib/i18n";
 import type { ActiveSponsors } from "@/lib/sponsors";
 import { CATEGORIES, type Category, type Edition } from "@/lib/types";
-import { BookmarkIcon, CheckIcon, ClockIcon, CloseIcon, MoonIcon, SunIcon } from "./icons";
+import { BookmarkIcon, CheckIcon, ChevronDownIcon, ClockIcon, CloseIcon, MoonIcon, SunIcon } from "./icons";
+import { FlipText } from "./FlipText";
 import { CategoryTitleSponsor, SponsoredBriefingCard } from "./sponsors";
 import { StoryCard } from "./StoryCard";
-import { useReveal } from "./useReveal";
+import { holdReveals, useReveal } from "./useReveal";
 
 // ---------------------------------------------------------------------------
 // Saved bookmarks (localStorage, same key as the prototype)
@@ -114,6 +115,28 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
   const isLatest = Boolean(edition && latest && edition.key === latest.key);
   const viewingLive = !requestedKey; // following the live edition rather than a pinned hour
   const stories = useMemo(() => edition?.stories[category] ?? [], [edition, category]);
+
+  // Edition arrival effects, on every page load and whenever a new edition comes in: the time
+  // flips to the new hour, a green line sweeps under it, the dot pulses, a "New edition" tag
+  // shows for a few seconds, then the stories glide in one by one. Waits for the local-time
+  // relabel so it plays once, on the reader's own time.
+  const [arrival, setArrival] = useState(0);
+  const [showNewTag, setShowNewTag] = useState(false);
+  const editionKey = edition?.key;
+  useEffect(() => {
+    if (!localZone || !editionKey) return;
+    setArrival((n) => n + 1);
+    if (document.documentElement.classList.contains("js-motion")) holdReveals(800);
+    if (!isLatest) return;
+    setShowNewTag(true);
+    const id = window.setTimeout(() => setShowNewTag(false), 4600);
+    return () => window.clearTimeout(id);
+  }, [localZone, editionKey, isLatest]);
+  const newTagClass =
+    "new-edition-tag rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] bg-amber-400/15 text-amber-600 dark:text-amber-300 whitespace-nowrap";
+  const editionLabel = edition
+    ? `${options.find((o) => o.key === edition.key)?.label ?? editionLabels?.time ?? ""}${isLatest ? t.latestSuffix : ""}`
+    : t.selectEdition;
 
   const showToast = useCallback((message: string) => {
     const id = ++toastSeq.current;
@@ -371,28 +394,48 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
               <label htmlFor="time-machine-select" className="sr-only">
                 {t.timeMachineLabel}
               </label>
-              <select
-                id="time-machine-select"
-                value={edition?.key ?? ""}
-                onChange={(e) => handleSnapshotChange(e.target.value)}
-                className="bg-transparent font-semibold text-stone-700 dark:text-stone-200 hover:text-stone-900 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded cursor-pointer max-w-[14rem] sm:max-w-none"
-              >
-                {!edition && <option value="">{t.selectEdition}</option>}
-                {options.map((o) => (
-                  <option key={o.key} value={o.key}>
-                    {o.label}
-                    {latest && o.key === latest.key ? t.latestSuffix : ""}
-                  </option>
-                ))}
-              </select>
+              {/* The visible label (so the time can flip); the real select sits invisibly on top. */}
+              <span className="relative min-w-0 rounded focus-within:ring-2 focus-within:ring-amber-500 group">
+                <span aria-hidden="true" className="flex items-center gap-1 font-semibold text-stone-700 dark:text-stone-200 group-hover:text-stone-900 dark:group-hover:text-white max-w-[14rem] sm:max-w-none overflow-hidden">
+                  <FlipText key={arrival} text={editionLabel} play={arrival > 0} />
+                  <ChevronDownIcon className="w-3.5 h-3.5 shrink-0" />
+                </span>
+                {arrival > 0 && <span key={arrival} className="edition-sweep" aria-hidden="true" />}
+                <select
+                  id="time-machine-select"
+                  value={edition?.key ?? ""}
+                  onChange={(e) => handleSnapshotChange(e.target.value)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-base"
+                >
+                  {!edition && <option value="">{t.selectEdition}</option>}
+                  {options.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                      {latest && o.key === latest.key ? t.latestSuffix : ""}
+                    </option>
+                  ))}
+                </select>
+              </span>
             </div>
           )}
 
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true" />
+            <span key={arrival} className={`w-1.5 h-1.5 rounded-full bg-amber-400 ${arrival > 0 ? "dot-pulse" : ""}`} aria-hidden="true" />
+            {/* Phones: the "New edition" tag briefly takes the place of "Next drop" so nothing reflows (very narrow phones skip it). */}
+            {showNewTag && (
+              <span key={`m${arrival}`} className={`${newTagClass} hidden min-[360px]:inline-block sm:hidden`} aria-hidden="true">
+                {t.newEdition}
+              </span>
+            )}
             <span>
-              {t.nextDrop} <span className="font-semibold text-stone-700 dark:text-stone-200 tabular-nums">{countdown}</span>
+              <span className={showNewTag ? "min-[360px]:hidden sm:inline" : ""}>{t.nextDrop} </span>
+              <span className="font-semibold text-stone-700 dark:text-stone-200 tabular-nums">{countdown}</span>
             </span>
+            {showNewTag && (
+              <span key={arrival} role="status" className={`${newTagClass} hidden sm:inline-block`}>
+                {t.newEdition}
+              </span>
+            )}
           </div>
 
           <nav aria-label="Language" className="ml-auto flex items-center gap-1">
