@@ -148,3 +148,11 @@ test("publishing day runs 5 AM to midnight Eastern", async () => {
   // July (EDT, UTC-4): 5 AM is 09:00Z.
   assert.equal(nextEditionTime(new Date("2026-07-13T05:00:00Z"), tz).toISOString(), "2026-07-13T09:00:00.000Z");
 });
+
+test("subtitle hours: 5 AM–12 AM Eastern, shown in any zone", async () => {
+  const { formatEditionWindow } = await import("../lib/hour");
+  const now = new Date("2026-11-15T03:00:00Z");
+  assert.equal(formatEditionWindow(now, "en", "America/New_York"), "5 AM–12 AM EST");
+  assert.equal(formatEditionWindow(now, "en", "America/Denver"), "3 AM–10 PM MST");
+  assert.equal(formatEditionWindow(now, "es", "Europe/Madrid"), "11:00–6:00 GMT+1");
+});

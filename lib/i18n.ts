@@ -19,6 +19,8 @@ export const localePath = (locale: Locale) => (locale === DEFAULT_LOCALE ? "/" :
 
 export interface Dictionary {
   tagline: string;
+  /** Short label before the publishing hours on phones. */
+  hoursLabel: string;
   finiteEdition: string;
   timeMachineLabel: string;
   latestSuffix: string;
@@ -86,6 +88,7 @@ export interface Dictionary {
 
 const en: Dictionary = {
   tagline: "Every hour’s top 10 news",
+  hoursLabel: "Updates",
   finiteEdition: "Finite Edition",
   timeMachineLabel: "Time Machine Snapshot",
   latestSuffix: " (Latest)",
@@ -153,6 +156,7 @@ const en: Dictionary = {
 
 const es: Dictionary = {
   tagline: "El top 10 de noticias de cada hora",
+  hoursLabel: "Cada hora",
   finiteEdition: "Edición finita",
   timeMachineLabel: "Edición de la Máquina del Tiempo",
   latestSuffix: " (Última)",
@@ -220,6 +224,7 @@ const es: Dictionary = {
 
 const zh: Dictionary = {
   tagline: "每小时十大新闻",
+  hoursLabel: "每小时更新",
   finiteEdition: "有限版",
   timeMachineLabel: "时光机快照",
   latestSuffix: "（最新）",

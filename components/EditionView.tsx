@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BrandBadge } from "./Brand";
 import { useRouter } from "next/navigation";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatFullDate, formatOptionLabel, formatTimeLabel, nextEditionTime, parseHourKey } from "@/lib/hour";
+import { formatEditionWindow, formatFullDate, formatOptionLabel, formatTimeLabel, nextEditionTime, parseHourKey } from "@/lib/hour";
 import { getDictionary, LOCALE_LABEL, LOCALE_NAME, LOCALE_TAG, LOCALES, localePath, type Locale } from "@/lib/i18n";
 import type { ActiveSponsors } from "@/lib/sponsors";
 import { CATEGORIES, type Category, type Edition } from "@/lib/types";
@@ -329,7 +329,13 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
               <span style={{ "--d": 120 } as React.CSSProperties} className="rise block whitespace-nowrap font-display font-extrabold uppercase tracking-[0.01em] leading-none text-[13px] min-[350px]:text-[15px] min-[380px]:text-lg min-[400px]:text-xl sm:text-3xl md:text-[2.5rem] text-stone-900 dark:text-stone-50">
                 Top 10 News <span className="text-amber-400 font-bold">/</span> Hourly
               </span>
-              <span style={{ "--d": 260 } as React.CSSProperties} className="rise block mt-2 sm:mt-3 label-caps !text-[9.5px] sm:!text-[11px] !tracking-[0.28em] text-stone-500 dark:text-stone-400">{t.tagline}</span>
+              <span style={{ "--d": 260 } as React.CSSProperties} className="rise block mt-2 sm:mt-3 whitespace-nowrap label-caps !text-[9.5px] sm:!text-[11px] !tracking-[0.16em] min-[400px]:!tracking-[0.22em] sm:!tracking-[0.28em] text-stone-500 dark:text-stone-400">
+                {/* Phones have room for the hours only, so the tagline gives way to a short label. */}
+                <span className="hidden sm:inline">{t.tagline}<span className="text-stone-400 dark:text-stone-500"> · </span></span>
+                <span className="sm:hidden">{t.hoursLabel} </span>
+                {/* Publishing hours, in the reader's own zone once mounted. */}
+                <span suppressHydrationWarning>{formatEditionWindow(new Date(), locale, localZone ? null : undefined)}</span>
+              </span>
             </span>
           </Link>
 

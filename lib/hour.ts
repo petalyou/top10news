@@ -108,3 +108,22 @@ export function localDateParts(d: Date, tz = DISPLAY_TZ): { date: string; hour: 
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
   return { date: `${get("year")}-${get("month")}-${get("day")}`, hour: Number(get("hour")) };
 }
+
+/**
+ * The publishing day's first and last edition as instants (the next ones from `now`), so they
+ * can be shown in any zone.
+ */
+export function editionWindow(now: Date, tz = EDITION_TZ): { first: Date; last: Date } {
+  let first = truncateToHour(now);
+  for (let i = 0; i < 48 && localDateParts(first, tz).hour !== FIRST_EDITION_HOUR; i++) first = addHours(first, 1);
+  let last = first;
+  for (let i = 0; i < 48 && localDateParts(last, tz).hour !== LAST_EDITION_HOUR; i++) last = addHours(last, 1);
+  return { first, last };
+}
+
+/** "5 AM–12 AM EST" / "5:00–0:00 EST": the publishing hours in `tz` (null = the viewer's zone). */
+export function formatEditionWindow(now: Date, lang: Lang = "en", tz: Zone = DISPLAY_TZ): string {
+  const { first, last } = editionWindow(now);
+  const f = fmt(lang, tz, lang === "en" ? { hour: "numeric", hourCycle: "h12" } : { hour: "numeric", minute: "2-digit", hourCycle: "h23" });
+  return `${f.format(first)}–${f.format(last)} ${zoneAbbr(first, tz)}`;
+}
