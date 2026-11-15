@@ -14,7 +14,7 @@ export interface Synthesis {
 
 /**
  * Gemini request budget per hourly run: 1 duplicate check (all categories at once) + 1 write-up
- * per category = 5 requests, about 100 a day over the 20 daily editions. Flash-Lite's free tier
+ * per category = 6 requests, about 120 a day over the 20 daily editions. Flash-Lite's free tier
  * allows ~500 a day; the fallback model (also Flash-Lite) is only used when the primary fails.
  */
 const PRIMARY_MODEL = GEMINI_MODEL;
@@ -126,7 +126,7 @@ export async function synthesizeCategory(category: Category, clusters: Cluster[]
 // Duplicate-event pass: catches same-story clusters that lexical matching missed
 // ---------------------------------------------------------------------------
 
-const TOPICS = ["tech", "finance", "politics", "world", "other"] as const;
+const TOPICS = ["tech", "finance", "politics", "world", "health", "other"] as const;
 export type Topic = (typeof TOPICS)[number];
 
 const DedupeSchema = z.object({
@@ -139,10 +139,11 @@ const DedupeSchema = z.object({
 const DEDUPE_SYSTEM = `You are the desk editor sorting news story clusters for an hourly Top 10 briefing. Each cluster has an id and the headlines that fell into it. Clusters are listed under the section of the feed they came from, which is often wrong for general feeds.
 
 Task 1 - categories: for EVERY cluster id, decide the section by what the story is about:
-- tech: technology, AI, software, gadgets, internet platforms' products, cybersecurity, science and space (e.g. rocket launches, NASA, SpaceX missions).
+- tech: technology, AI, software, gadgets, internet platforms' products, cybersecurity, science and space (e.g. rocket launches, NASA, SpaceX missions). Medical science belongs in health.
 - finance: markets, the economy, company business news and earnings, deals, jobs data, central banks, crypto.
 - politics: United States government and politics: Congress, the White House, elections, courts, federal and state policy.
 - world: international affairs and other countries' news: diplomacy, wars, foreign governments and elections, global disasters.
+- health: medicine and public health: diseases and outbreaks (anywhere in the world), medical research and studies, drugs, vaccines and FDA approvals, hospitals, health insurance and care costs, nutrition and mental health. A health bill being voted on in Congress is politics; a drugmaker's earnings are finance.
 - other: anything else (sports, entertainment, celebrity, lifestyle, weather, local crime). These are left out of the briefing.
 When a story fits two sections, pick the one a reader would look in first (a US tariff vote is politics; its market reaction is finance).
 

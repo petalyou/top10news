@@ -79,6 +79,20 @@ export const FEEDS: FeedConfig[] = [
   { outlet: "Fox News", url: "https://moxie.foxnews.com/google-publisher/world.xml", category: "world", tier: 2 },
   { outlet: "CNBC", url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362", category: "world", tier: 2 },
   { outlet: "UN News", url: "https://news.un.org/feed/subscribe/en/news/all/rss.xml", category: "world", tier: 1 },
+
+  // -------------------------------- Health --------------------------------
+  { outlet: "New York Times", url: "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml", category: "health", tier: 1 },
+  { outlet: "BBC News", url: "https://feeds.bbci.co.uk/news/health/rss.xml", category: "health", tier: 1 },
+  { outlet: "NPR", url: "https://feeds.npr.org/1128/rss.xml", category: "health", tier: 1 },
+  { outlet: "The Guardian", url: "https://www.theguardian.com/society/health/rss", category: "health", tier: 1 },
+  { outlet: "WHO", url: "https://www.who.int/rss-feeds/news-english.xml", category: "health", tier: 1 },
+  { outlet: "STAT", url: "https://www.statnews.com/feed/", category: "health", tier: 2 },
+  { outlet: "KFF Health News", url: "https://kffhealthnews.org/feed/", category: "health", tier: 2 },
+  { outlet: "CNBC", url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000108", category: "health", tier: 2 },
+  { outlet: "CBS News", url: "https://www.cbsnews.com/latest/rss/health", category: "health", tier: 2 },
+  { outlet: "ABC News", url: "https://abcnews.go.com/abcnews/healthheadlines", category: "health", tier: 2 },
+  { outlet: "Fox News", url: "https://moxie.foxnews.com/google-publisher/health.xml", category: "health", tier: 2 },
+  { outlet: "Medical Xpress", url: "https://medicalxpress.com/rss-feed/", category: "health", tier: 3 },
 ];
 
 export const TIER_WEIGHT: Record<FeedConfig["tier"], number> = { 1: 3, 2: 2, 3: 1 };

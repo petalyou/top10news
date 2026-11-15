@@ -101,7 +101,7 @@ export function scoreCluster(c: Cluster, now: Date): number {
 /** Score every cluster and return the top `n` per category, ranked. */
 export function selectTopClusters(clusters: Cluster[], now: Date, n = 10): Record<Category, Cluster[]> {
   for (const c of clusters) c.score = scoreCluster(c, now);
-  const out: Record<Category, Cluster[]> = { tech: [], finance: [], politics: [], world: [] };
+  const out: Record<Category, Cluster[]> = { tech: [], finance: [], politics: [], world: [], health: [] };
   for (const c of clusters) out[c.category].push(c);
   for (const cat of Object.keys(out) as Category[]) {
     out[cat] = out[cat]

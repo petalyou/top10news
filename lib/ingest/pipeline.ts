@@ -11,6 +11,7 @@ import { fetchArticles } from "./fetch";
 import { findDuplicateGroups, synthesizeCategory, type Synthesis } from "./synthesize";
 import { pickHot } from "./hot";
 import { fetchTrends, trendFor, trendMultiplier, type Trend } from "./trends";
+import { fetchGoogleNews, googleMultiplier, googleRankFor, type GoogleStory } from "./google-news";
 
 export interface IngestResult {
   hour: string;
@@ -24,6 +25,8 @@ export interface IngestResult {
   feedErrors: { outlet: string; url: string; error: string }[];
   /** Google Trends check: how many trending searches were read, and which ones matched a published story. */
   trends?: { fetched: number; matched: string[] };
+  /** Google News check: how many Google top stories were read, and how many published stories matched one. */
+  googleNews?: { fetched: number; matched: number };
   durationMs: number;
 }
 
@@ -50,6 +53,7 @@ export interface IngestDeps {
   synthesize?: typeof synthesizeCategory;
   dedupe?: typeof findDuplicateGroups;
   trends?: () => Promise<Trend[]>;
+  googleNews?: () => Promise<GoogleStory[]>;
 }
 
 export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: IngestDeps } = {}): Promise<IngestResult> {
@@ -58,6 +62,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
   const dedupeFn = opts.deps?.dedupe ?? findDuplicateGroups;
   // Tests that stub the feeds also stay off the network for Trends unless they pass their own.
   const trendsFn = opts.deps?.trends ?? (opts.deps?.fetch ? async () => [] : fetchTrends);
+  const googleNewsFn = opts.deps?.googleNews ?? (opts.deps?.fetch ? async () => [] : fetchGoogleNews);
   const started = Date.now();
   const now = opts.now ?? new Date();
   const hour = opts.hour ?? targetHourFor(now);
@@ -65,16 +70,21 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
   // Scheduled runs only publish inside the publishing day (5 AM to midnight, display zone).
   // An explicit `hour` (manual backfill) is always honoured.
   if (!opts.hour && !isEditionHour(hour)) {
-    return { hour: key, storage: await storageMode(), articleCount: 0, clusterCount: 0, storyCounts: { tech: 0, finance: 0, politics: 0, world: 0 }, feedErrors: [], status: "skipped_off_hours", durationMs: Date.now() - started };
+    return { hour: key, storage: await storageMode(), articleCount: 0, clusterCount: 0, storyCounts: { tech: 0, finance: 0, politics: 0, world: 0, health: 0 }, feedErrors: [], status: "skipped_off_hours", durationMs: Date.now() - started };
   }
-  const base = { hour: key, storage: await storageMode(), articleCount: 0, clusterCount: 0, storyCounts: { tech: 0, finance: 0, politics: 0, world: 0 }, feedErrors: [] };
+  const base = { hour: key, storage: await storageMode(), articleCount: 0, clusterCount: 0, storyCounts: { tech: 0, finance: 0, politics: 0, world: 0, health: 0 }, feedErrors: [] };
 
   // Hour files are immutable.
   if (await editionExists(key)) return { ...base, status: "skipped_already_published", durationMs: Date.now() - started };
 
   // 1. Fetch whitelisted feeds (last 4 hours).
   //    Google Trends is read alongside, as a ranking signal only.
-  const [{ articles, feedErrors }, trends] = await Promise.all([fetchFn(now, WINDOW_HOURS), trendsFn().catch(() => [] as Trend[])]);
+  //    So are Google News top stories (ranking check only).
+  const [{ articles, feedErrors }, trends, googleNews] = await Promise.all([
+    fetchFn(now, WINDOW_HOURS),
+    trendsFn().catch(() => [] as Trend[]),
+    googleNewsFn().catch(() => [] as GoogleStory[]),
+  ]);
   if (articles.length === 0) return { ...base, status: "skipped_no_articles", feedErrors, durationMs: Date.now() - started };
 
   // 2. Cluster by headline similarity, then let Gemini merge same-event clusters (one request)
@@ -112,7 +122,11 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     const adjusted = cands.map((c, i) => {
       prevFor.set(c, prevs[i]);
       // Stories people are searching for on Google right now rank higher.
-      return { c, s: c.score * freshnessMultiplier(hoursInTop(prevs[i], key)) * trendMultiplier(trendFor(c, trends)) };
+      // ...and so do stories Google News is featuring right now.
+      return {
+        c,
+        s: c.score * freshnessMultiplier(hoursInTop(prevs[i], key)) * trendMultiplier(trendFor(c, trends)) * googleMultiplier(googleRankFor(c, googleNews)),
+      };
     });
     adjusted.sort((a, b) => b.s - a.s || b.c.distinctOutlets - a.c.distinctOutlets || b.c.newestAt.getTime() - a.c.newestAt.getTime());
     top[category] = adjusted.slice(0, TOP_N + SPARES).map((x) => x.c);
@@ -146,11 +160,12 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     }
   }
 
-  // 4. Gemini write-ups: one request per category, in parallel (4 requests, plus a retry of
+  // 4. Gemini write-ups: one request per category, in parallel (5 requests, plus a retry of
   //    only the missing stories if needed). A story Gemini couldn't write is left out; a category
   //    with nothing written keeps the previous edition's list, so one bad answer never blocks the hour.
   const fallbackCategories: Category[] = [];
   const matched = new Set<string>();
+  let googleMatched = 0;
   let wroteAny = false;
   const entries = await Promise.all(
     CATEGORIES.map(async (category) => {
@@ -172,6 +187,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
       }
       if (ranked.length) wroteAny = true;
       const changes = ranked.map((c, i) => formatRankChange(prevFor.get(c)?.rank ?? null, i + 1, previous != null));
+      googleMatched += ranked.filter((c) => googleRankFor(c, googleNews) != null).length;
       const trending = ranked.map((c) => trendFor(c, trends));
       trending.forEach((t) => t && matched.add(t.query));
       const hot = pickHot(ranked, changes, now, trending.map((t) => t?.rank ?? null), ranked.map((c) => prevFor.get(c)?.rank ?? null));
@@ -214,6 +230,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     storyCounts: Object.fromEntries(entries.map(([c, list]) => [c, list.length])) as Record<Category, number>,
     feedErrors,
     trends: { fetched: trends.length, matched: [...matched] },
+    googleNews: { fetched: googleNews.length, matched: googleMatched },
     durationMs: Date.now() - started,
   };
 }

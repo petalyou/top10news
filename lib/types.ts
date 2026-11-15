@@ -1,5 +1,5 @@
 /** Tab order; the first is the default tab. */
-export const CATEGORIES = ["finance", "tech", "politics", "world"] as const;
+export const CATEGORIES = ["finance", "tech", "politics", "world", "health"] as const;
 export type Category = (typeof CATEGORIES)[number];
 export const DEFAULT_CATEGORY: Category = CATEGORIES[0];
 
@@ -8,6 +8,7 @@ export const CATEGORY_META: Record<Category, { title: string; badge: string }> =
   finance: { title: "Top 10 Finance & Markets", badge: "Finance & Markets" },
   politics: { title: "Top 10 Politics", badge: "Politics" },
   world: { title: "Top 10 World", badge: "World" },
+  health: { title: "Top 10 Health", badge: "Health" },
 };
 
 export function isCategory(v: unknown): v is Category {

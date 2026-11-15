@@ -10,7 +10,7 @@ const figtree = Figtree({ subsets: ["latin", "latin-ext"], variable: "--font-fig
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: "Top 10 News Hourly — Finite, High-Signal Headlines",
-  description: "The 10 hottest stories in Tech & AI, Finance & Markets, Politics and World, locked every hour.",
+  description: "The 10 hottest stories in Finance & Markets, Tech & AI, Politics, World and Health, locked every hour.",
   openGraph: { title: "Top 10 News Hourly", description: "Every hour’s top 10 news", type: "website" },
 };
 

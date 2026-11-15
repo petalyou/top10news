@@ -1,8 +1,8 @@
 # Top 10 News Hourly
 
-A "10-second grab-and-go" news site: every hour it locks the 10 most-covered stories in **Tech & AI**, **Finance & Markets**, **Politics** and **World** into an immutable snapshot you can revisit with the Time Machine (`/?t=YYYY-MM-DD-HH`, UTC). No database, no accounts, no sign-ups.
+A "10-second grab-and-go" news site: every hour it locks the 10 most-covered stories in **Finance & Markets**, **Tech & AI**, **Politics**, **World** and **Health** into an immutable snapshot you can revisit with the Time Machine (`/?t=YYYY-MM-DD-HH`, UTC). No database, no accounts, no sign-ups.
 
-**Gemini quota.** Each hourly run makes 5 requests (1 duplicate check + 1 per category), about 100 a day over 20 daily editions. Flash-Lite's free tier allows roughly 15 requests/minute and 500/day. Don't switch `GEMINI_MODEL` to a Flash (non-Lite) model on the free tier: those allow only ~20 requests a day.
+**Gemini quota.** Each hourly run makes 6 requests (1 duplicate check + 1 per category), about 120 a day over 20 daily editions. Flash-Lite's free tier allows roughly 15 requests/minute and 500/day. Don't switch `GEMINI_MODEL` to a Flash (non-Lite) model on the free tier: those allow only ~20 requests a day.
 
 **Schedule and times.** Editions publish hourly from 5 AM through 12 AM (midnight) Eastern; there are none from 1 AM to 4 AM (`EDITION_TIMEZONE`, default `America/New_York`; hours in `lib/hour.ts`). The hourly job still runs every hour and simply skips the quiet hours (`skipped_off_hours`); a manual run for a specific hour always runs. Readers see every time in their own time zone; `NEXT_PUBLIC_DISPLAY_TIMEZONE` is only the fallback before the page loads in the browser.
 

@@ -19,7 +19,7 @@ const SponsorTextSchema = z.object({
 
 export const SponsorSchema = z.object({
   id: z.string().min(1),
-  category: z.enum(["tech", "finance", "politics", "world", "all"]),
+  category: z.enum(["tech", "finance", "politics", "world", "health", "all"]),
   slot_type: z.enum(["title_banner", "native_briefing"]),
   sponsor_name: z.string().min(1),
   headline: z.string().min(1),
