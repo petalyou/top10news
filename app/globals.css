@@ -130,9 +130,9 @@ body {
 }
 .js-motion [data-reveal="shown"] {
   transition:
-    opacity 0.8s var(--ease-out-soft),
-    transform 0.8s var(--ease-out-soft),
-    filter 0.8s var(--ease-out-soft);
+    opacity 1s var(--ease-out-soft),
+    transform 1s var(--ease-out-soft),
+    filter 1s var(--ease-out-soft);
 }
 
 /* Smooth unfold for story details. */

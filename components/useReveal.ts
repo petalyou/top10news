@@ -9,9 +9,9 @@ import { useEffect, useRef } from "react";
  * prefers reduced motion), so nothing is ever hidden without JavaScript.
  */
 
-const STAGGER_MS = 70;
-const MAX_STAGGER_STEPS = 8;
-const DURATION_MS = 800;
+const STAGGER_MS = 150;
+const MAX_STAGGER_STEPS = 10;
+const DURATION_MS = 1000;
 
 let observer: IntersectionObserver | null = null;
 /** Reveals wait until this time, so a new edition's stories glide in after its header effects. */
