@@ -104,3 +104,51 @@ test("follow-up developments stay separate from the original story; true duplica
   assert.equal(sameHeadline("Nvidia CEO Jensen Huang resigns after concealed relationship", "Tech executives rally behind Jensen Huang after Nvidia resignation"), false);
   assert.equal(sameHeadline("Nvidia CEO Jensen Huang resigns after concealed relationship", "Nvidia CEO Jensen Huang resigns after a concealed relationship"), true);
 });
+
+test("differently worded duplicates merge when Gemini links them; follow-ups it doesn't link stay apart", async () => {
+  const hour = addHours(truncateToHour(new Date()), -30);
+  const evs: Ev[] = [
+    { category: "world", titles: ["SpaceX successfully catches Starship for the first time"], outlets: [O("The Hill", 1), O("Al Jazeera", 1)], minutesAgo: 8 },
+    { category: "world", titles: ["SpaceX executes first catch of Starship using launch tower arms"], outlets: [O("The Verge", 2), O("Engadget", 2)], minutesAgo: 9 },
+    { category: "world", titles: ["Nvidia CEO Jensen Huang resigns following concealed relationship"], outlets: [O("New York Times", 1)], minutesAgo: 10 },
+    { category: "world", titles: ["Tech executives rally behind Jensen Huang following Nvidia resignation"], outlets: [O("TechCrunch", 2)], minutesAgo: 11 },
+  ];
+  // Gemini writes each story and says which one repeats another (the second SpaceX story -> the first).
+  const linking = async (_c: unknown, cl: { articles: { title: string }[] }[]) => {
+    const first = cl.findIndex((c) => /catches Starship/.test(c.articles[0].title));
+    return cl.map((c) => ({
+      headline: c.articles[0].title,
+      summary: "S.",
+      whyItMatters: "W.",
+      ...(/tower arms/.test(c.articles[0].title) && first >= 0 ? { sameAs: first } : {}),
+    }));
+  };
+  await runHourlyIngest({
+    hour, now: addHours(hour, -5 / 60),
+    deps: { fetch: async (n = new Date()) => ({ articles: articlesFor([...evs, ...filler(10)], n), feedErrors: [] }), synthesize: linking as never, dedupe: async () => ({ groups: [], categories: {} }) },
+  });
+  const e = (await readEditionUncached(toHourKey(hour)))!;
+  const spacex = e.stories.world.filter((s) => /Starship/.test(s.headline));
+  assert.equal(spacex.length, 1);
+  assert.deepEqual(spacex[0].sources.map((s) => s.outlet).sort(), ["Al Jazeera", "Engadget", "The Hill", "The Verge"]);
+  assert.equal(e.stories.world.filter((s) => /Huang/.test(s.headline)).length, 2);
+  assert.equal(e.stories.world.length, 10);
+});
+
+test("Gemini's same_event_as answer is read into sameAs", async () => {
+  const { synthesizeCategory } = await import("../lib/ingest/synthesize");
+  process.env.GEMINI_API_KEY ||= "test";
+  const story = (id: string, same: string) => ({
+    id, headline: `H ${id}`, summary: "S.", why_it_matters: "W.", headline_es: "", summary_es: "", why_it_matters_es: "", headline_zh: "", summary_zh: "", why_it_matters_zh: "", same_event_as: same,
+  });
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ stories: [story("c1", ""), story("c2", "c1"), story("c3", "c3")] }) }] }, finishReason: "STOP" }] }))) as unknown as typeof fetch;
+  try {
+    const cl = [0, 1, 2].map((i) => ({ id: `k${i}`, category: "tech", articles: [{ outlet: "X", title: `t${i}`, url: `u${i}`, teaser: "" }] })) as never[];
+    const out = await synthesizeCategory("tech", cl);
+    assert.deepEqual(out.map((o) => o?.sameAs), [undefined, 0, undefined]);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

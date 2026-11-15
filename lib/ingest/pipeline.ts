@@ -157,7 +157,9 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
         return all.map(() => null);
       });
       // Fold any repeated stories together, then keep the best 10 (spares fill freed slots).
-      const deduped = dedupeWritten(all.filter((_, i) => written[i]), written.filter((t): t is Synthesis => Boolean(t)), prevFor);
+      const sameAs = new Map<Cluster, Cluster>();
+      written.forEach((t, i) => t?.sameAs != null && sameAs.set(all[i], all[t.sameAs]));
+      const deduped = dedupeWritten(all.filter((_, i) => written[i]), written.filter((t): t is Synthesis => Boolean(t)), prevFor, sameAs);
       const ranked = deduped.clusters.slice(0, TOP_N);
       const texts = deduped.texts.slice(0, TOP_N);
       if (all.length && !ranked.length) {

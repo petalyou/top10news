@@ -8,6 +8,8 @@ export interface Synthesis {
   summary: string;
   whyItMatters: string;
   i18n?: StoryTranslations;
+  /** Index (in the category's list) of another story Gemini says reports the very same event. */
+  sameAs?: number;
 }
 
 /**
@@ -31,6 +33,7 @@ const OutputSchema = z.object({
       headline_zh: z.string().describe("Simplified Chinese translation of headline"),
       summary_zh: z.string().describe("Simplified Chinese translation of summary"),
       why_it_matters_zh: z.string().describe("Simplified Chinese translation of why_it_matters"),
+      same_event_as: z.string().default("").describe('Id of another cluster in this list that reports the very same event, or "" if none'),
     }),
   ),
 });
@@ -46,6 +49,7 @@ Rules:
 - Use only facts present in the provided material. Do not invent numbers, names, quotes or outcomes. If the material is thin, stay general rather than guess.
 - Keep a neutral, non-partisan tone; describe political claims as claims.
 - If a cluster mixes an earlier event with a newer development about it, lead with the newest development.
+- same_event_as: if this cluster reports the very same event as another cluster in the list (same incident, launch, announcement or decision, just worded differently or from other outlets), give that cluster's id; otherwise "". A follow-up development is NOT the same event: reactions, petitions, support or backlash, investigations, a successor being named, or market fallout after the news each count as their own story.
 - Return one entry per cluster id, using the ids exactly as given.`;
 
 /** Clusters are numbered by their position in the full ranked list (c1..c10), even in a partial retry. */
@@ -100,7 +104,14 @@ export async function synthesizeCategory(category: Category, clusters: Cluster[]
         const i = indexFromId(r.id);
         if (i == null || !missing.includes(i) || out[i]) continue;
         if (!r.headline.trim() || !r.summary.trim() || !r.why_it_matters.trim()) continue;
-        out[i] = { headline: r.headline.trim(), summary: r.summary.trim(), whyItMatters: r.why_it_matters.trim(), i18n: translationsFrom(r) };
+        const same = r.same_event_as?.trim() ? indexFromId(r.same_event_as) : null;
+        out[i] = {
+          headline: r.headline.trim(),
+          summary: r.summary.trim(),
+          whyItMatters: r.why_it_matters.trim(),
+          i18n: translationsFrom(r),
+          ...(same != null && same !== i && same >= 0 && same < clusters.length ? { sameAs: same } : {}),
+        };
       }
       const still = out.filter((r) => !r).length;
       if (still) console.warn(`[synthesize:${category}] ${model} left ${still} of ${missing.length} stories unwritten`);

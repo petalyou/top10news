@@ -12,23 +12,32 @@ export function sameHeadline(a: string, b: string): boolean {
 
 /**
  * Last line of defence after the write-ups: if two stories in a category came out with the same
- * (or near-same) headline, or carry the same story identity, fold the lower one into the higher
+ * (or near-same) headline, carry the same story identity, or Gemini said while writing them that
+ * one reports the same event as the other (`sameAs`, which catches differently worded duplicates
+ * such as "SpaceX catches Starship" / "SpaceX's tower arms catch Starship"), fold the lower one into the higher
  * one. The merged story keeps the better rank, the union of sources, and the identity with the
  * earlier firstSeen (so it isn't wrongly labelled NEW). Callers then cut to 10, so a spare
  * candidate fills the freed slot.
  */
-export function dedupeWritten(clusters: Cluster[], texts: Synthesis[], prevFor: Map<Cluster, Story | null>) {
+export function dedupeWritten(clusters: Cluster[], texts: Synthesis[], prevFor: Map<Cluster, Story | null>, sameAs: Map<Cluster, Cluster> = new Map()) {
   const outC: Cluster[] = [];
   const outT: Synthesis[] = [];
+  /** The original clusters folded into each output slot, so Gemini's "same event as" links still resolve after a merge. */
+  const members: Cluster[][] = [];
   clusters.forEach((c, i) => {
     const t = texts[i];
     const key = prevFor.get(c)?.storyKey;
-    const j = outT.findIndex((o, k) => sameHeadline(o.headline, t.headline) || (key != null && prevFor.get(outC[k])?.storyKey === key));
+    const linked = (k: number) => members[k].some((m) => sameAs.get(c) === m || sameAs.get(m) === c);
+    const j = outT.findIndex(
+      (o, k) => linked(k) || sameHeadline(o.headline, t.headline) || (key != null && prevFor.get(outC[k])?.storyKey === key),
+    );
     if (j < 0) {
       outC.push(c);
       outT.push(t);
+      members.push([c]);
       return;
     }
+    members[j].push(c);
     const keep = outC[j];
     const seen = new Set(keep.articles.map((a) => a.url));
     const articles = [...keep.articles, ...c.articles.filter((a) => !seen.has(a.url))];
