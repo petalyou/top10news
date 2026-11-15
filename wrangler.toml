@@ -2,6 +2,7 @@
 # Deploy: npm run deploy   (or connect the Git repo in Workers & Pages → Workers Builds)
 
 name = "top10news"
+keep_vars = true
 main = "worker.ts"
 compatibility_date = "2026-11-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
