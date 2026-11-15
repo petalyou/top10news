@@ -1,7 +1,8 @@
 import { addHours, isEditionHour, toHourKey, truncateToHour } from "../hour";
 import { editionExists, publishEdition, readPreviousEdition, storageMode } from "../storage";
 import { CATEGORIES, type Category, type Edition, type Story } from "../types";
-import { clusterArticles, mergeClusters, pickSources, selectTopClusters, type Cluster } from "./cluster";
+import { clusterArticles, mergeClusters, pickSources, sameEventGroups, selectTopClusters, type Cluster } from "./cluster";
+import { dedupeWritten } from "./final-dedupe";
 import { overlap } from "./text";
 import { randomUUID } from "node:crypto";
 import { formatRankChange, matchPrevious } from "./diff";
@@ -35,6 +36,8 @@ export function targetHourFor(now: Date): Date {
 
 /** Stories per category. */
 const TOP_N = 10;
+/** Extra candidates written per category so a dropped or merged story still leaves 10. */
+const SPARES = 2;
 /** Normal fetch window, and the wider window used only to backfill a category that came up short. */
 const WINDOW_HOURS = 4;
 const BACKFILL_WINDOW_HOURS = 12;
@@ -87,7 +90,8 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     const where = desk.categories[c.id] ?? c.category;
     for (const a of c.articles) filedAs.set(a.url, where);
   }
-  const clusters: Cluster[] = mergeClusters(kept, desk.groups);
+  const modelMerged = mergeClusters(kept, desk.groups);
+  const clusters: Cluster[] = mergeClusters(modelMerged, sameEventGroups(modelMerged));
   const pool = selectTopClusters(clusters, now, 25);
 
   // 3. Freshness: match candidates to last hour's Top 10. First-time stories get a boost,
@@ -103,7 +107,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
       return { c, s: c.score * freshnessMultiplier(hoursInTop(prevs[i], key)) };
     });
     adjusted.sort((a, b) => b.s - a.s || b.c.distinctOutlets - a.c.distinctOutlets || b.c.newestAt.getTime() - a.c.newestAt.getTime());
-    top[category] = adjusted.slice(0, TOP_N).map((x) => x.c);
+    top[category] = adjusted.slice(0, TOP_N + SPARES).map((x) => x.c);
   }
 
   // 3b. Backfill: on a slow news hour (or when feeds fail) a category can have fewer than
@@ -143,8 +147,10 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
         console.warn(`[synthesize:${category}] gave up:`, err instanceof Error ? err.message : err);
         return all.map(() => null);
       });
-      const ranked = all.filter((_, i) => written[i]);
-      const texts = written.filter((t): t is Synthesis => Boolean(t));
+      // Fold any repeated stories together, then keep the best 10 (spares fill freed slots).
+      const deduped = dedupeWritten(all.filter((_, i) => written[i]), written.filter((t): t is Synthesis => Boolean(t)), prevFor);
+      const ranked = deduped.clusters.slice(0, TOP_N);
+      const texts = deduped.texts.slice(0, TOP_N);
       if (all.length && !ranked.length) {
         fallbackCategories.push(category);
         const kept = (previous?.stories[category] ?? []).map<Story>((s) => ({ ...s, id: `${key}-${category}-${s.rank}`, rankChange: "=", hot: undefined }));

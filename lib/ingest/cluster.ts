@@ -154,3 +154,34 @@ export function mergeClusters(clusters: Cluster[], groups: string[][]): Cluster[
   }
   return [...clusters.filter((c) => !absorbed.has(c.id)), ...merged];
 }
+
+/**
+ * Same-category clusters that are plainly one event: they share an article URL (the same story
+ * syndicated in two feeds, e.g. BBC's US and World pages), or their headlines overlap heavily.
+ * Clustering runs per feed section, so after stories are re-filed by content these pairs can end
+ * up side by side in one category; this merges them without needing the model.
+ */
+export function sameEventGroups(clusters: Cluster[]): string[][] {
+  const parent = new Map(clusters.map((c) => [c.id, c.id]));
+  const find = (id: string): string => (parent.get(id) === id ? id : find(parent.get(id)!));
+  const union = (a: string, b: string) => parent.set(find(a), find(b));
+  const urls = new Map<string, string>();
+  for (const c of clusters) {
+    for (const a of c.articles) {
+      const key = `${c.category} ${a.url}`;
+      const other = urls.get(key);
+      if (other) union(c.id, other);
+      else urls.set(key, c.id);
+    }
+  }
+  for (let i = 0; i < clusters.length; i++) {
+    for (let j = i + 1; j < clusters.length; j++) {
+      const a = clusters[i];
+      const b = clusters[j];
+      if (a.category === b.category && overlap(a.tokens, b.tokens, 4) >= 0.75) union(a.id, b.id);
+    }
+  }
+  const groups = new Map<string, string[]>();
+  for (const c of clusters) groups.set(find(c.id), [...(groups.get(find(c.id)) ?? []), c.id]);
+  return [...groups.values()].filter((g) => g.length > 1);
+}
