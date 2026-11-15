@@ -47,14 +47,21 @@ Rules:
 - Keep a neutral, non-partisan tone; describe political claims as claims.
 - Return one entry per cluster id, using the ids exactly as given.`;
 
-function renderClusters(category: Category, clusters: Cluster[]): string {
-  const blocks = clusters.map((c, i) => {
-    const lines = c.articles
+/** Clusters are numbered by their position in the full ranked list (c1..c10), even in a partial retry. */
+function renderClusters(category: Category, clusters: Cluster[], indices: number[]): string {
+  const blocks = indices.map((i) => {
+    const lines = clusters[i].articles
       .slice(0, 6)
       .map((a) => `  - [${a.outlet}] ${a.title}${a.teaser ? ` — ${a.teaser.slice(0, 280)}` : ""}`);
     return `<cluster id="c${i + 1}">\n${lines.join("\n")}\n</cluster>`;
   });
-  return `Category: ${CATEGORY_META[category].badge}\n\n${blocks.join("\n\n")}`;
+  return `Category: ${CATEGORY_META[category].badge}\nWrite exactly ${indices.length} entries, one for each cluster id below.\n\n${blocks.join("\n\n")}`;
+}
+
+/** "c3", "C3", "3", "c03", "cluster 3" -> index 2. */
+function indexFromId(id: string): number | null {
+  const m = /(\d+)/.exec(id);
+  return m ? Number(m[1]) - 1 : null;
 }
 
 async function callModel(model: string, prompt: string) {
@@ -77,34 +84,30 @@ function translationsFrom(r: OutputStory): StoryTranslations {
 
 /**
  * Write headline / 2-sentence summary / why-it-matters for one category's ranked clusters.
- * Tries the primary model, then the fallback model. Throws if both fail so the
- * hour is not published with partial content.
+ * Accepts partial answers: whatever the primary model got right is kept, and only the missing
+ * stories go to the fallback model (still at most 2 requests per category). Returns null for a
+ * story neither model wrote; the pipeline then leaves that story out.
  */
-export async function synthesizeCategory(category: Category, clusters: Cluster[]): Promise<Synthesis[]> {
-  if (clusters.length === 0) return [];
-  const prompt = renderClusters(category, clusters);
-
-  let lastErr: unknown;
+export async function synthesizeCategory(category: Category, clusters: Cluster[]): Promise<(Synthesis | null)[]> {
+  const out: (Synthesis | null)[] = clusters.map(() => null);
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
+    const missing = out.flatMap((r, i) => (r ? [] : [i]));
+    if (!missing.length) break;
     try {
-      const out = await callModel(model, prompt);
-      const byId = new Map(out.stories.map((s) => [s.id.trim(), s]));
-      const result = clusters.map((_, i) => byId.get(`c${i + 1}`));
-      if (result.some((r) => !r || !r.headline.trim() || !r.summary.trim() || !r.why_it_matters.trim())) {
-        throw new Error(`incomplete output from ${model}`);
+      const res = await callModel(model, renderClusters(category, clusters, missing));
+      for (const r of res.stories) {
+        const i = indexFromId(r.id);
+        if (i == null || !missing.includes(i) || out[i]) continue;
+        if (!r.headline.trim() || !r.summary.trim() || !r.why_it_matters.trim()) continue;
+        out[i] = { headline: r.headline.trim(), summary: r.summary.trim(), whyItMatters: r.why_it_matters.trim(), i18n: translationsFrom(r) };
       }
-      return result.map((r) => ({
-        headline: r!.headline.trim(),
-        summary: r!.summary.trim(),
-        whyItMatters: r!.why_it_matters.trim(),
-        i18n: translationsFrom(r!),
-      }));
+      const still = out.filter((r) => !r).length;
+      if (still) console.warn(`[synthesize:${category}] ${model} left ${still} of ${missing.length} stories unwritten`);
     } catch (err) {
-      lastErr = err;
       console.warn(`[synthesize:${category}] ${model} failed:`, err instanceof Error ? err.message : err);
     }
   }
-  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+  return out;
 }
 
 // ---------------------------------------------------------------------------

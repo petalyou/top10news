@@ -7,12 +7,14 @@ import { randomUUID } from "node:crypto";
 import { formatRankChange, matchPrevious } from "./diff";
 import { firstSeenFor, freshnessMultiplier, hoursInTop } from "./freshness";
 import { fetchArticles } from "./fetch";
-import { findDuplicateGroups, synthesizeCategory } from "./synthesize";
+import { findDuplicateGroups, synthesizeCategory, type Synthesis } from "./synthesize";
 import { pickHot } from "./hot";
 
 export interface IngestResult {
   hour: string;
   status: "published" | "skipped_already_published" | "skipped_no_articles" | "skipped_off_hours";
+  /** Categories that reused the previous edition's list because Gemini wrote none of their stories. */
+  fallbackCategories?: Category[];
   storage: "r2" | "local";
   articleCount: number;
   clusterCount: number;
@@ -129,11 +131,26 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     }
   }
 
-  // 4. Gemini write-ups: one request per category, in parallel (4 requests).
+  // 4. Gemini write-ups: one request per category, in parallel (4 requests, plus a retry of
+  //    only the missing stories if needed). A story Gemini couldn't write is left out; a category
+  //    with nothing written keeps the previous edition's list, so one bad answer never blocks the hour.
+  const fallbackCategories: Category[] = [];
+  let wroteAny = false;
   const entries = await Promise.all(
     CATEGORIES.map(async (category) => {
-      const ranked = top[category];
-      const texts = await synthesizeFn(category, ranked);
+      const all = top[category];
+      const written: (Synthesis | null)[] = await synthesizeFn(category, all).catch((err) => {
+        console.warn(`[synthesize:${category}] gave up:`, err instanceof Error ? err.message : err);
+        return all.map(() => null);
+      });
+      const ranked = all.filter((_, i) => written[i]);
+      const texts = written.filter((t): t is Synthesis => Boolean(t));
+      if (all.length && !ranked.length) {
+        fallbackCategories.push(category);
+        const kept = (previous?.stories[category] ?? []).map<Story>((s) => ({ ...s, id: `${key}-${category}-${s.rank}`, rankChange: "=", hot: undefined }));
+        return [category, kept] as const;
+      }
+      if (ranked.length) wroteAny = true;
       const changes = ranked.map((c, i) => formatRankChange(prevFor.get(c)?.rank ?? null, i + 1, previous != null));
       const hot = pickHot(ranked, changes, now);
       const stories = ranked.map<Story>((c, i) => ({
@@ -154,6 +171,9 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
     }),
   );
 
+  // Nothing written anywhere (e.g. Gemini quota used up): keep the current edition live.
+  if (!wroteAny) throw new Error("Gemini wrote no stories for any category; nothing published");
+
   // 5. Publish: hour file + index + latest.json. Readers see it from :00.
   const edition: Edition = {
     key,
@@ -166,9 +186,10 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
   return {
     ...base,
     status: created ? "published" : "skipped_already_published",
+    fallbackCategories,
     articleCount: articles.length,
     clusterCount: clusters.length,
-    storyCounts: Object.fromEntries(CATEGORIES.map((c) => [c, top[c].length])) as Record<Category, number>,
+    storyCounts: Object.fromEntries(entries.map(([c, list]) => [c, list.length])) as Record<Category, number>,
     feedErrors,
     durationMs: Date.now() - started,
   };
