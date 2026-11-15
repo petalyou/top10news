@@ -25,6 +25,7 @@ const mk = (titles: [string, string][], minutesAgo = 30): Cluster => {
 test("Google Trends RSS: parses searches, traffic and headlines", () => {
   const trends = parseTrendsRss(xml);
   assert.deepEqual(trends.map((t) => [t.query, t.traffic]), [["jensen huang", 200000], ["powerball", 50000], ["fed", 2000]]);
+  assert.deepEqual(trends.map((t) => t.rank), [1, 2, 3]);
   assert.deepEqual(trends[0].titles, ["Tech leaders back Jensen Huang after Nvidia exit"]);
   assert.equal(parseTraffic("1M+"), 1000000);
   assert.equal(parseTraffic(""), 0);
@@ -45,6 +46,9 @@ test("Google Trends match: multi-word search or same-event headline; one-word se
 test("HOT: a trending story with 2+ recent outlets is HOT; NEW still wins", () => {
   const two = mk([["NYT", "Tech executives rally behind Jensen Huang"], ["TechCrunch", "Letter backs Huang"]]);
   const one = mk([["NYT", "Tech executives rally behind Jensen Huang"]]);
-  assert.deepEqual(pickHot([one, two], ["=", "-1"], now, [true, true]), [false, true]);
-  assert.deepEqual(pickHot([two], ["NEW"], now, [true]), [false]);
+  assert.deepEqual(pickHot([one, two], ["=", "-1"], now, [5, 5]), [false, true]);
+  assert.deepEqual(pickHot([two], ["NEW"], now, [5]), [false]);
+  // Google's top 3 searches: HOT even with one outlet, and even when NEW.
+  assert.deepEqual(pickHot([one, one], ["NEW", "="], now, [1, 3]), [true, true]);
+  assert.deepEqual(pickHot([one], ["="], now, [4]), [false]);
 });

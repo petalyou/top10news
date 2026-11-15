@@ -13,19 +13,19 @@ import { FlameIcon, LeafIcon } from "./BadgeIcons";
  */
 function RankBadge({ story, t }: { story: Story; t: Dictionary }) {
   const change = story.rankChange;
-  if (change === "NEW") {
-    return (
-      <span title={t.badgeNewTitle} className="label-caps !text-[8.5px] !tracking-[0.18em] inline-flex items-center gap-[3px] whitespace-nowrap text-amber-600 dark:text-amber-300">
-        <LeafIcon className="w-[11px] h-[11px] shrink-0" />
-        {t.badgeNew}
-      </span>
-    );
-  }
   if (story.hot) {
     return (
       <span title={t.badgeHotTitle} className="label-caps !text-[8.5px] !tracking-[0.18em] inline-flex items-center gap-[3px] whitespace-nowrap text-[#b4532a] dark:text-[#eba57f]">
         <FlameIcon className="w-[11px] h-[11px] shrink-0" />
         {t.badgeHot}
+      </span>
+    );
+  }
+  if (change === "NEW") {
+    return (
+      <span title={t.badgeNewTitle} className="label-caps !text-[8.5px] !tracking-[0.18em] inline-flex items-center gap-[3px] whitespace-nowrap text-amber-600 dark:text-amber-300">
+        <LeafIcon className="w-[11px] h-[11px] shrink-0" />
+        {t.badgeNew}
       </span>
     );
   }

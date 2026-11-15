@@ -11,6 +11,8 @@ export const TRENDS_URL = process.env.TRENDS_URL || "https://trends.google.com/t
 
 export interface Trend {
   query: string;
+  /** Position on the list by search volume, 1 = most searched. */
+  rank: number;
   /** Approximate searches, e.g. "20,000+" -> 20000. */
   traffic: number;
   /** Headlines Google attaches to the trend, used for matching only. */
@@ -34,8 +36,10 @@ export function parseTrendsRss(xml: string): Trend[] {
     const query = tag(item, "title");
     if (!query) continue;
     const titles = (item.match(/<ht:news_item_title>[\s\S]*?<\/ht:news_item_title>/g) ?? []).map((t) => tag(t, "ht:news_item_title")).filter(Boolean);
-    out.push({ query, traffic: parseTraffic(tag(item, "ht:approx_traffic")), titles });
+    out.push({ query, rank: 0, traffic: parseTraffic(tag(item, "ht:approx_traffic")), titles });
   }
+  // Rank by search volume; ties keep Google's order.
+  [...out].map((t, i) => ({ t, i })).sort((a, b) => b.t.traffic - a.t.traffic || a.i - b.i).forEach(({ t }, r) => (t.rank = r + 1));
   return out;
 }
 

@@ -169,7 +169,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
       const changes = ranked.map((c, i) => formatRankChange(prevFor.get(c)?.rank ?? null, i + 1, previous != null));
       const trending = ranked.map((c) => trendFor(c, trends));
       trending.forEach((t) => t && matched.add(t.query));
-      const hot = pickHot(ranked, changes, now, trending.map(Boolean));
+      const hot = pickHot(ranked, changes, now, trending.map((t) => t?.rank ?? null), ranked.map((c) => prevFor.get(c)?.rank ?? null));
       const stories = ranked.map<Story>((c, i) => ({
         id: `${key}-${category}-${i + 1}`,
         category,
