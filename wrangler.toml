@@ -35,3 +35,5 @@ CONTACT_EMAIL = "yes2mountain@gmail.com"
 NEXT_PUBLIC_DISPLAY_TIMEZONE = "America/New_York"
 EDITION_TIMEZONE = "America/New_York"
 SHOW_SPONSORS = "false"
+[triggers]
+crons = ["40 * * * *"]
