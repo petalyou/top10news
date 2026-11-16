@@ -42,8 +42,11 @@ export function targetHourFor(now: Date): Date {
 
 /** Stories per category. */
 const TOP_N = 10;
-/** Extra candidates written per category so a dropped or merged story still leaves 10. */
-const SPARES = 2;
+/**
+ * Extra candidates written per category so a dropped, merged or unwritten story still leaves 10.
+ * Spares cost no extra Gemini requests (they ride in the same write-up call).
+ */
+const SPARES = 4;
 /** Normal fetch window, and the wider window used only to backfill a category that came up short. */
 const WINDOW_HOURS = 4;
 const BACKFILL_WINDOW_HOURS = 12;
@@ -138,7 +141,9 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
   // 3b. Backfill: on a slow news hour (or when feeds fail) a category can have fewer than
   //     10 distinct stories in the 4h window. Widen to 12h for that category only and append
   //     the strongest stories that aren't already listed, so every list fills all 10 slots.
-  const short = CATEGORIES.filter((c) => top[c].length < TOP_N);
+  //     A list counts as short when it can't cover its spares too, since duplicates and stories
+  //     Gemini can't write are only removed later.
+  const short = CATEGORIES.filter((c) => top[c].length < TOP_N + SPARES);
   if (short.length) {
     const wide = await fetchFn(now, BACKFILL_WINDOW_HOURS).catch(() => null);
     if (wide?.articles.length) {
@@ -151,7 +156,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
             !c.articles.some((a) => usedUrls.has(a.url) || (filedAs.has(a.url) && filedAs.get(a.url) !== category)) &&
             !listed.some((l) => overlap(c.tokens, l.tokens, 3) >= 0.5),
         );
-        const add = fresh.slice(0, TOP_N - listed.length);
+        const add = fresh.slice(0, TOP_N + SPARES - listed.length);
         const claimed = new Set([...prevFor.values()].filter(Boolean));
         const prevs = matchPrevious(add, (previous?.stories[category] ?? []).filter((p) => !claimed.has(p)));
         add.forEach((c, i) => prevFor.set(c, prevs[i]));

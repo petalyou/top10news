@@ -166,3 +166,21 @@ test("the same article in three feed sections shows in only one tab", async () =
   const tabs = (Object.keys(e.stories) as (keyof typeof e.stories)[]).filter((c) => e.stories[c].some((s) => /Starship/.test(s.headline)));
   assert.equal(tabs.length, 1);
 });
+
+test("a tab still fills 10 when 3 stories can't be written", async () => {
+  const hour = addHours(truncateToHour(new Date()), -50);
+  const extra: Ev[] = [
+    { category: "world", titles: ["Iceland volcano erupts near fishing town"], outlets: [O("RUV", 2)], minutesAgo: 70 },
+    { category: "world", titles: ["Morocco opens Africa's largest solar farm"], outlets: [O("Le Monde", 2)], minutesAgo: 75 },
+  ];
+  let skipped = 0;
+  const someFail = async (_c: unknown, cl: { articles: { title: string }[] }[]) =>
+    cl.map((c, i) => (i < 6 && i % 2 === 1 && skipped++ < 3 ? null : { headline: c.articles[0].title, summary: "S.", whyItMatters: "W." }));
+  await runHourlyIngest({
+    hour, now: addHours(hour, -5 / 60),
+    deps: { fetch: async (n = new Date()) => ({ articles: articlesFor([...filler(12), ...extra], n), feedErrors: [] }), synthesize: someFail as never, dedupe: async () => ({ groups: [], categories: {} }) },
+  });
+  const e = (await readEditionUncached(toHourKey(hour)))!;
+  assert.equal(skipped >= 3, true);
+  assert.equal(e.stories.world.length, 10);
+});
