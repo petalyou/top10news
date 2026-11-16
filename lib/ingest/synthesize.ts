@@ -119,8 +119,34 @@ export async function synthesizeCategory(category: Category, clusters: Cluster[]
       console.warn(`[synthesize:${category}] ${model} failed:`, err instanceof Error ? err.message : err);
     }
   }
+  // Last resort when both models wrote nothing at all (usually a per-minute rate limit hit while
+  // all tabs are written at once, or one oversized answer): wait for the limit to reset, then ask
+  // again in smaller batches. Without this the tab would fall back to last hour's list.
+  if (clusters.length && !out.some(Boolean)) {
+    const wait = Number(process.env.SYNTH_RETRY_DELAY_MS ?? 20_000);
+    console.warn(`[synthesize:${category}] nothing written; retrying in small batches after ${wait} ms`);
+    await new Promise((r) => setTimeout(r, wait));
+    const all = out.map((_, i) => i);
+    for (let k = 0; k < all.length; k += RETRY_BATCH) {
+      const batch = all.slice(k, k + RETRY_BATCH);
+      try {
+        const res = await callModel(PRIMARY_MODEL, renderClusters(category, clusters, batch));
+        for (const r of res.stories) {
+          const i = indexFromId(r.id);
+          if (i == null || !batch.includes(i) || out[i]) continue;
+          if (!r.headline.trim() || !r.summary.trim() || !r.why_it_matters.trim()) continue;
+          out[i] = { headline: r.headline.trim(), summary: r.summary.trim(), whyItMatters: r.why_it_matters.trim(), i18n: translationsFrom(r) };
+        }
+      } catch (err) {
+        console.warn(`[synthesize:${category}] batch retry failed:`, err instanceof Error ? err.message : err);
+      }
+    }
+  }
   return out;
 }
+
+/** Stories per request in the last-resort retry. */
+const RETRY_BATCH = 6;
 
 // ---------------------------------------------------------------------------
 // Duplicate-event pass: catches same-story clusters that lexical matching missed

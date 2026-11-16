@@ -79,3 +79,27 @@ test("a failed category keeps the previous list; other categories still publish"
   await assert.rejects(runHourlyIngest({ hour: h2, now: addHours(h2, -5 / 60), deps: deps(async () => { throw new Error("quota"); }) }));
   assert.equal(await editionExists(toHourKey(h2)), false);
 });
+
+test("when both models write nothing, synthesis retries in small batches before giving up", async () => {
+  process.env.SYNTH_RETRY_DELAY_MS = "0";
+  const prompts: string[] = [];
+  const realFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = (async (_u: string, init: RequestInit) => {
+      const prompt = JSON.parse(String(init.body)).contents[0].parts[0].text as string;
+      prompts.push(prompt);
+      if (prompts.length <= 2) return new Response("bad answer", { status: 400 });
+      const ids = [...prompt.matchAll(/id="(c\d+)"/g)].map((m) => m[1]);
+      return reply(ids.map((id) => entry(id)));
+    }) as typeof fetch;
+    const out = await synthesizeCategory("finance", cl(8));
+    assert.ok(out.every(Boolean));
+    // 2 failed full attempts (primary, fallback) are followed by 2 batches of up to 6.
+    const batches = prompts.filter((p) => /Write exactly/.test(p)).slice(-2);
+    assert.match(batches[0], /Write exactly 6 entries/);
+    assert.match(batches[1], /Write exactly 2 entries/);
+  } finally {
+    globalThis.fetch = realFetch;
+    delete process.env.SYNTH_RETRY_DELAY_MS;
+  }
+});
