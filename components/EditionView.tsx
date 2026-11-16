@@ -12,7 +12,7 @@ import { BookmarkIcon, CheckIcon, ChevronDownIcon, ClockIcon, CloseIcon, MoonIco
 import { FlipText } from "./FlipText";
 import { CategoryTitleSponsor, SponsoredBriefingCard } from "./sponsors";
 import { StoryCard } from "./StoryCard";
-import { holdReveals, useReveal } from "./useReveal";
+import { holdReveals, skipReveals, useReveal } from "./useReveal";
 
 // ---------------------------------------------------------------------------
 // Saved bookmarks (localStorage, same key as the prototype)
@@ -217,6 +217,8 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
     const next = dx < 0 ? i + 1 : i - 1; // swipe left = next tab
     if (next < 0 || next >= CATEGORIES.length) return;
     setSwipeDir(dx < 0 ? "left" : "right");
+    // After a swipe the new tab's stories show at once (the list itself slides in from the side).
+    skipReveals(600);
     switchCategory(CATEGORIES[next], false);
   }
 

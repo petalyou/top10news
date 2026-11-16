@@ -17,6 +17,14 @@ let observer: IntersectionObserver | null = null;
 /** Reveals wait until this time, so a new edition's stories glide in after its header effects. */
 let holdUntil = 0;
 
+/** Elements mounted before this time skip the entrance and show at once (e.g. after a swipe). */
+let instantUntil = 0;
+
+/** Show everything that mounts in the next `ms` milliseconds right away, without the glide. */
+export function skipReveals(ms: number) {
+  instantUntil = Date.now() + ms;
+}
+
 /** Delay reveals that start in the next `ms` milliseconds until those `ms` have passed. */
 export function holdReveals(ms: number) {
   holdUntil = Date.now() + ms;
@@ -51,7 +59,7 @@ export function useReveal<T extends HTMLElement>() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (!document.documentElement.classList.contains("js-motion") || typeof IntersectionObserver === "undefined") {
+    if (Date.now() < instantUntil || !document.documentElement.classList.contains("js-motion") || typeof IntersectionObserver === "undefined") {
       el.dataset.reveal = "done";
       return;
     }
