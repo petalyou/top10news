@@ -192,7 +192,36 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
 
   // ------------------------------------------------------------------ actions
 
-  function switchCategory(cat: Category) {
+  // Swipe between tabs (touch screens). Only a clear, quick sideways swipe counts, so vertical
+  // scrolling, taps and sideways scrolling inside the tab strip are left alone.
+  const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null);
+  const [swipeDir, setSwipeDir] = useState<"left" | "right" | null>(null);
+  function onSwipeStart(e: React.TouchEvent) {
+    const target = e.target as HTMLElement;
+    if (e.touches.length !== 1 || target.closest("select, input, textarea, [data-no-swipe]")) {
+      swipeStart.current = null;
+      return;
+    }
+    const p = e.touches[0];
+    swipeStart.current = { x: p.clientX, y: p.clientY, t: Date.now() };
+  }
+  function onSwipeEnd(e: React.TouchEvent) {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start) return;
+    const p = e.changedTouches[0];
+    const dx = p.clientX - start.x;
+    const dy = p.clientY - start.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.8 || Date.now() - start.t > 800) return;
+    const i = CATEGORIES.indexOf(category);
+    const next = dx < 0 ? i + 1 : i - 1; // swipe left = next tab
+    if (next < 0 || next >= CATEGORIES.length) return;
+    setSwipeDir(dx < 0 ? "left" : "right");
+    switchCategory(CATEGORIES[next], false);
+  }
+
+  function switchCategory(cat: Category, fromTab = true) {
+    if (fromTab) setSwipeDir(null);
     setCategory(cat);
     // Shallow URL update: all three categories are already loaded.
     window.history.replaceState(null, "", editionHref(locale, requestedKey, cat));
@@ -526,7 +555,8 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
             )}
           </div>
         ) : (
-          <>
+          // Phones: swipe the list left/right to move to the next/previous tab.
+          <div onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd} onTouchCancel={() => (swipeStart.current = null)}>
             <div style={{ "--d": 560 } as React.CSSProperties} className="rise flex flex-wrap items-center justify-between gap-x-4 gap-y-3 mb-5">
               <h1 className="label-caps text-stone-800 dark:text-stone-100">{t.categoryTitle[category]}</h1>
               <div className="flex items-center gap-4">
@@ -551,7 +581,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
 
             {showSponsors && <CategoryTitleSponsor sponsor={sponsors.titleBanner} label={sponsors.titleBanner ? t.presentedBy(sponsors.titleBanner.sponsorName) : ""} />}
 
-            <section key={category} className={`list-in ${compact ? "space-y-3" : "space-y-4"}`} aria-label={t.categoryTitle[category]}>
+            <section key={category} className={`list-in ${swipeDir ? `swipe-in-${swipeDir}` : ""} ${compact ? "space-y-3" : "space-y-4"}`} aria-label={t.categoryTitle[category]}>
               {stories.length === 0 && <p className="text-sm text-stone-500 dark:text-stone-400 py-10 text-center">{t.noStoriesInCategory}</p>}
               {stories.map((story, i) => (
                 <Fragment key={story.id}>
@@ -571,7 +601,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
                 </Fragment>
               ))}
             </section>
-          </>
+          </div>
         )}
 
         {/* Finish line */}

@@ -296,6 +296,33 @@ body {
 .list-in {
   animation: listIn 0.35s ease both;
 }
+/* After a swipe, the next tab's list slides in from the side it was swiped from. */
+.swipe-in-left {
+  animation: swipeInLeft 0.38s var(--ease-out-soft) both;
+}
+.swipe-in-right {
+  animation: swipeInRight 0.38s var(--ease-out-soft) both;
+}
+@keyframes swipeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes swipeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 .story-card:hover {
   transform: translateY(-2px);
 }
@@ -361,6 +388,8 @@ body {
   .edition-sweep,
   .dot-pulse,
   .new-edition-tag,
+  .swipe-in-left,
+  .swipe-in-right,
   .list-in {
     animation: none;
   }
@@ -442,4 +471,9 @@ body {
 }
 :lang(zh) .label-caps {
   letter-spacing: 0.08em;
+}
+
+/* Sideways slide effects never cause a horizontal scrollbar. */
+body {
+  overflow-x: clip;
 }
