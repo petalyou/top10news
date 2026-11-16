@@ -506,7 +506,7 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
                     role="tab"
                     aria-selected={active}
                     onClick={() => switchCategory(cat)}
-                    className={`px-5 sm:px-7 py-2.5 sm:py-3 rounded-full text-[15px] sm:text-base font-bold whitespace-nowrap transition ${
+                    className={`tab-pop px-5 sm:px-7 py-2.5 sm:py-3 rounded-full text-[15px] sm:text-base font-bold whitespace-nowrap transition ${
                       active ? "pill-active" : "soft-pill text-stone-700 hover:text-stone-900 dark:text-stone-300 dark:hover:text-white"
                     }`}
                   >

@@ -477,3 +477,42 @@ body {
 body {
   overflow-x: clip;
 }
+
+/* Category tabs pop up a little under the mouse (mouse and trackpad only, not touch). */
+.tab-pop {
+  transition:
+    transform 0.28s var(--ease-out-soft),
+    box-shadow 0.28s var(--ease-out-soft),
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tab-pop:hover {
+    transform: translateY(-2px) scale(1.04);
+  }
+  .tab-pop.soft-pill:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 2px 4px rgba(31, 34, 30, 0.06),
+      0 12px 22px -10px rgba(31, 34, 30, 0.38);
+  }
+  .dark .tab-pop.soft-pill:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 12px 22px -10px rgba(0, 0, 0, 0.9);
+  }
+  .tab-pop.pill-active:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 12px 22px -10px rgba(47, 82, 57, 0.8);
+  }
+  .tab-pop:active {
+    transform: translateY(0) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-pop:hover,
+  .tab-pop:active {
+    transform: none;
+  }
+}
