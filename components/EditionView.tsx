@@ -11,7 +11,7 @@ import { CATEGORIES, DEFAULT_CATEGORY, type Category, type Edition } from "@/lib
 import { BookmarkIcon, CheckIcon, ChevronDownIcon, ClockIcon, CloseIcon, MoonIcon, SunIcon } from "./icons";
 import { FlipText } from "./FlipText";
 import { CategoryTitleSponsor, SponsoredBriefingCard } from "./sponsors";
-import { StoryCard } from "./StoryCard";
+import { StoryCard, type Vote } from "./StoryCard";
 import { holdReveals, skipReveals, useReveal } from "./useReveal";
 
 // ---------------------------------------------------------------------------
@@ -86,6 +86,11 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
   const [compact, setCompact] = useState(true); // grab-and-go default: headlines first
   const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  // Thumbs up/down. Counts are shared by all readers for the live edition (see /api/votes);
+  // this browser's own choices are remembered for the current edition only.
+  const [votes, setVotes] = useState<Record<string, Vote>>({});
+  const [voteCounts, setVoteCounts] = useState<Record<string, { up: number; down: number }>>({});
+  const [countsOn, setCountsOn] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
@@ -132,6 +137,80 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
     const id = window.setTimeout(() => setShowNewTag(false), 4600);
     return () => window.clearTimeout(id);
   }, [localZone, editionKey, isLatest]);
+  useEffect(() => {
+    if (!editionKey) return;
+    const storeKey = `top10-votes:${editionKey}`;
+    try {
+      // Keep only this edition's choices.
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k?.startsWith("top10-votes:") && k !== storeKey) localStorage.removeItem(k);
+      }
+      setVotes(JSON.parse(localStorage.getItem(storeKey) ?? "{}"));
+    } catch {
+      setVotes({});
+    }
+    setVoteCounts({});
+    if (!isLatest) return;
+    let stop = false;
+    const load = () =>
+      fetch(`/api/votes?edition=${editionKey}`)
+        .then((r) => r.json())
+        .then((d: { enabled?: boolean; counts?: Record<string, { up: number; down: number }> }) => {
+          if (stop) return;
+          setCountsOn(Boolean(d.enabled));
+          if (d.counts) setVoteCounts(d.counts);
+        })
+        .catch(() => {});
+    load();
+    const id = window.setInterval(() => document.visibilityState === "visible" && load(), 90_000);
+    return () => {
+      stop = true;
+      window.clearInterval(id);
+    };
+  }, [editionKey, isLatest]);
+
+  function voterId(): string {
+    try {
+      let id = localStorage.getItem("top10-voter");
+      if (!id) localStorage.setItem("top10-voter", (id = crypto.randomUUID()));
+      return id;
+    } catch {
+      return "anon-" + Math.random().toString(36).slice(2, 12);
+    }
+  }
+
+  function castVote(storyId: string, next: Vote) {
+    if (!editionKey) return;
+    const prev = votes[storyId] ?? null;
+    const prevCounts = voteCounts[storyId] ?? { up: 0, down: 0 };
+    const adjusted = { ...prevCounts };
+    if (prev) adjusted[prev] = Math.max(0, adjusted[prev] - 1);
+    if (next) adjusted[next] += 1;
+    const save = (v: Vote) =>
+      setVotes((x) => {
+        const all = { ...x, [storyId]: v };
+        try {
+          localStorage.setItem(`top10-votes:${editionKey}`, JSON.stringify(all));
+        } catch {}
+        return all;
+      });
+    save(next);
+    if (!countsOn) return;
+    setVoteCounts((x) => ({ ...x, [storyId]: adjusted }));
+    fetch("/api/votes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ edition: editionKey, story: storyId, voter: voterId(), vote: next }) })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        const d = (await r.json()) as { counts: { up: number; down: number } };
+        setVoteCounts((x) => ({ ...x, [storyId]: d.counts }));
+      })
+      .catch(() => {
+        // Not saved (closed edition, limit, network): undo so the numbers stay honest.
+        save(prev);
+        setVoteCounts((x) => ({ ...x, [storyId]: prevCounts }));
+      });
+  }
+
   const newTagClass =
     "new-edition-tag rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] bg-amber-400/15 text-amber-600 dark:text-amber-300 whitespace-nowrap";
   const editionLabel = edition
@@ -596,6 +675,10 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
                     onRead={() => markRead(story.id)}
                     onToggleBookmark={() => toggleBookmark(story.id)}
                     onShare={() => copySnapshotLink(story.rank)}
+                    vote={votes[story.id] ?? null}
+                    counts={countsOn ? voteCounts[story.id] ?? null : null}
+                    canRate={isLatest}
+                    onVote={(v) => castVote(story.id, v)}
                   />
                   {showSponsors && i === sponsorAfterIndex && (
                     <SponsoredBriefingCard sponsor={sponsors.nativeBriefing} category={category} compact={compact} inquiryEmail={inquiryEmail} t={t} />

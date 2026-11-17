@@ -47,6 +47,9 @@ export interface Dictionary {
   bookmark: string;
   removeBookmark: string;
   copyLink: string;
+  /** Thumbs on each story (not saved; just for this visit). */
+  rateUp: string;
+  rateDown: string;
   timeMachineBadge: string;
   viewingSnapshot: string;
   jumpToLatest: (time: string) => string;
@@ -116,6 +119,8 @@ const en: Dictionary = {
   bookmark: "Bookmark story",
   removeBookmark: "Remove bookmark",
   copyLink: "Copy permanent snapshot link",
+  rateUp: "Good pick",
+  rateDown: "Not for me",
   timeMachineBadge: "TIME MACHINE",
   viewingSnapshot: "Viewing immutable snapshot from",
   jumpToLatest: (t) => `Jump to Latest (${t}) →`,
@@ -185,6 +190,8 @@ const es: Dictionary = {
   bookmark: "Guardar noticia",
   removeBookmark: "Quitar de guardadas",
   copyLink: "Copiar enlace permanente",
+  rateUp: "Buena elección",
+  rateDown: "No me interesa",
   timeMachineBadge: "MÁQUINA DEL TIEMPO",
   viewingSnapshot: "Estás viendo la edición inmutable de las",
   jumpToLatest: (t) => `Ir a la última (${t}) →`,
@@ -254,6 +261,8 @@ const zh: Dictionary = {
   bookmark: "收藏",
   removeBookmark: "取消收藏",
   copyLink: "复制永久链接",
+  rateUp: "赞",
+  rateDown: "不感兴趣",
   timeMachineBadge: "时光机",
   viewingSnapshot: "正在查看不可更改的历史快照：",
   jumpToLatest: (t) => `回到最新（${t}）→`,

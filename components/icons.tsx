@@ -63,3 +63,15 @@ export const ChevronDownIcon = ({ className = "w-3.5 h-3.5" }: P) => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 9l6 6 6-6" />
   </svg>
 );
+
+export const ThumbUpIcon = ({ className = "w-4 h-4" }: P) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3Zm0 0 4.2-7.4a1.6 1.6 0 0 1 2.9 1.1L13.5 9H19a2 2 0 0 1 2 2.3l-1.2 7.5A2.6 2.6 0 0 1 17.2 21H7" />
+  </svg>
+);
+
+export const ThumbDownIcon = ({ className = "w-4 h-4" }: P) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 14V3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-3Zm0 0-4.2 7.4a1.6 1.6 0 0 1-2.9-1.1l.6-5.3H5a2 2 0 0 1-2-2.3l1.2-7.5A2.6 2.6 0 0 1 6.8 3H17" />
+  </svg>
+);

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Dictionary } from "@/lib/i18n";
 import type { Story } from "@/lib/types";
-import { BookmarkIcon, ExternalIcon, ShareIcon } from "./icons";
+import { BookmarkIcon, ExternalIcon, ShareIcon, ThumbDownIcon, ThumbUpIcon } from "./icons";
 import { useReveal } from "./useReveal";
 import { FlameIcon, LeafIcon } from "./BadgeIcons";
 
@@ -53,9 +53,50 @@ interface Props {
   onRead: () => void;
   onToggleBookmark: () => void;
   onShare: () => void;
+  vote?: Vote;
+  /** Everyone's thumbs for this story (shown when shared counts are on). */
+  counts?: { up: number; down: number } | null;
+  /** Thumbs only show on the live edition. */
+  canRate?: boolean;
+  onVote: (v: Vote) => void;
 }
 
-export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onToggleBookmark, onShare }: Props) {
+export type Vote = "up" | "down" | null;
+
+/** Thumbs up/down with everyone's counts for this hour. */
+function RateButtons({ vote, counts, onVote, t, className = "" }: { vote: Vote; counts?: { up: number; down: number } | null; onVote: (v: Vote) => void; t: Dictionary; className?: string }) {
+  const btn = "rate-btn h-7 min-w-7 px-1.5 rounded-full inline-flex items-center justify-center gap-1 transition";
+  const num = (n?: number) => (n ? <span className="text-[11px] font-semibold tabular-nums leading-none">{n}</span> : null);
+  const idle = "text-stone-300 hover:text-stone-700 hover:bg-stone-100 dark:text-stone-600 dark:hover:text-stone-200 dark:hover:bg-stone-800";
+  return (
+    <span className={`inline-flex items-center gap-0.5 ${className}`} data-no-swipe onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => onVote(vote === "up" ? null : "up")}
+        className={`${btn} ${vote === "up" ? "rate-on text-amber-600 dark:text-amber-300" : idle}`}
+        aria-pressed={vote === "up"}
+        aria-label={t.rateUp}
+        title={t.rateUp}
+      >
+        <ThumbUpIcon className={`w-[15px] h-[15px] ${vote === "up" ? "fill-current/25" : ""}`} />
+        {num(counts?.up)}
+      </button>
+      <button
+        type="button"
+        onClick={() => onVote(vote === "down" ? null : "down")}
+        className={`${btn} ${vote === "down" ? "rate-on text-[#b4532a] dark:text-[#eba57f]" : idle}`}
+        aria-pressed={vote === "down"}
+        aria-label={t.rateDown}
+        title={t.rateDown}
+      >
+        <ThumbDownIcon className={`w-[15px] h-[15px] ${vote === "down" ? "fill-current/25" : ""}`} />
+        {num(counts?.down)}
+      </button>
+    </span>
+  );
+}
+
+export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onToggleBookmark, onShare, vote = null, counts = null, canRate = true, onVote }: Props) {
   const n = story.sources.length;
   // In compact view a click opens just this card; in expanded view everything is open.
   const [open, setOpen] = useState(false);
@@ -130,8 +171,9 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
           </div>
 
           {/* Compact view: a quiet source line so readers can judge credibility and click straight out. */}
-          {!showBody && n > 0 && (
-            <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400 flex flex-wrap items-center gap-x-2">
+          {!showBody && (
+            <div className="mt-1.5 flex items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400 flex flex-wrap items-center gap-x-2 min-w-0">
               {story.sources.slice(0, 2).map((src, idx) => (
                 <span key={`${src.outlet}-${idx}`} className="inline-flex items-center gap-2">
                   {idx > 0 && <span aria-hidden="true">·</span>}
@@ -157,6 +199,8 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
                 </>
               )}
             </p>
+            {canRate && <RateButtons vote={vote} counts={counts} onVote={onVote} t={t} className="-mr-1.5 shrink-0" />}
+            </div>
           )}
 
           <div className="unfold" data-open={showBody} inert={!showBody} aria-hidden={!showBody}>
@@ -189,6 +233,7 @@ export function StoryCard({ story, t, isRead, isBookmarked, compact, onRead, onT
                   <ExternalIcon className="w-3 h-3 opacity-40" />
                 </a>
               ))}
+              {canRate && <RateButtons vote={vote} counts={counts} onVote={onVote} t={t} className="ml-auto -mr-1.5" />}
             </div>
           </div>
           </div>
