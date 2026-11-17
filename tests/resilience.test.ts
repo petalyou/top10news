@@ -103,3 +103,27 @@ test("when both models write nothing, synthesis retries in small batches before 
     delete process.env.SYNTH_RETRY_DELAY_MS;
   }
 });
+
+test("stories the desk marks as of little interest to US readers rank lower", async () => {
+  const synth = async (_c: unknown, list: { articles: { title: string }[] }[]) => list.map((c) => ({ headline: c.articles[0].title, summary: "S.", whyItMatters: "W." }));
+  const topFinance = async (hour: Date, notUsTitle?: RegExp) => {
+    const r = await runHourlyIngest({
+      hour, now: addHours(hour, -5 / 60),
+      deps: {
+        fetch: async (n = new Date()) => ({ articles: articlesFor(BASE_EVENTS, n), feedErrors: [] }),
+        synthesize: synth as never,
+        dedupe: async (byCat: Record<string, { id: string; articles: { title: string }[] }[]>) => ({
+          groups: [], categories: {},
+          notUs: notUsTitle ? Object.values(byCat).flat().filter((c) => c.articles.some((a) => notUsTitle.test(a.title))).map((c) => c.id) : [],
+        }),
+      } as never,
+    });
+    assert.equal(r.status, "published");
+    return (await readEditionUncached(toHourKey(hour)))!.stories.finance.map((s) => s.headline);
+  };
+  const h = addHours(truncateToHour(new Date()), -20);
+  const plain = await topFinance(h);
+  const marked = await topFinance(addHours(h, -1), new RegExp(plain[0].split(" ")[0]));
+  assert.notEqual(marked[0], plain[0]);
+  assert.ok(marked.indexOf(plain[0]) > 0);
+});

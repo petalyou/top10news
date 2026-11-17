@@ -43,8 +43,11 @@ export const FEEDS: FeedConfig[] = [
   { outlet: "CNBC", url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664", category: "finance", tier: 1 },
   { outlet: "MarketWatch", url: "https://feeds.content.dowjones.io/public/rss/mw_topstories", category: "finance", tier: 2 },
   { outlet: "New York Times", url: "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml", category: "finance", tier: 1 },
-  { outlet: "BBC News", url: "https://feeds.bbci.co.uk/news/business/rss.xml", category: "finance", tier: 1 },
-  { outlet: "The Guardian", url: "https://www.theguardian.com/business/rss", category: "finance", tier: 1 },
+  // UK-centred business pages: kept for big global stories, weighted lower for a US audience.
+  { outlet: "BBC News", url: "https://feeds.bbci.co.uk/news/business/rss.xml", category: "finance", tier: 3 },
+  { outlet: "The Guardian", url: "https://www.theguardian.com/business/rss", category: "finance", tier: 3 },
+  { outlet: "CNBC", url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258", category: "finance", tier: 2 },
+  { outlet: "CNBC", url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15839135", category: "finance", tier: 2 },
   { outlet: "Fortune", url: "https://fortune.com/feed/", category: "finance", tier: 2 },
   { outlet: "Yahoo Finance", url: "https://finance.yahoo.com/news/rssindex", category: "finance", tier: 3 },
   { outlet: "CoinDesk", url: "https://www.coindesk.com/arc/outboundfeeds/rss/", category: "finance", tier: 3 },
@@ -82,9 +85,9 @@ export const FEEDS: FeedConfig[] = [
 
   // -------------------------------- Health --------------------------------
   { outlet: "New York Times", url: "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml", category: "health", tier: 1 },
-  { outlet: "BBC News", url: "https://feeds.bbci.co.uk/news/health/rss.xml", category: "health", tier: 1 },
+  { outlet: "BBC News", url: "https://feeds.bbci.co.uk/news/health/rss.xml", category: "health", tier: 2 },
   { outlet: "NPR", url: "https://feeds.npr.org/1128/rss.xml", category: "health", tier: 1 },
-  { outlet: "The Guardian", url: "https://www.theguardian.com/society/health/rss", category: "health", tier: 1 },
+  { outlet: "The Guardian", url: "https://www.theguardian.com/society/health/rss", category: "health", tier: 3 },
   { outlet: "WHO", url: "https://www.who.int/rss-feeds/news-english.xml", category: "health", tier: 1 },
   { outlet: "STAT", url: "https://www.statnews.com/feed/", category: "health", tier: 2 },
   { outlet: "KFF Health News", url: "https://kffhealthnews.org/feed/", category: "health", tier: 2 },

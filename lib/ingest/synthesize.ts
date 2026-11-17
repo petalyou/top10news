@@ -158,7 +158,13 @@ export type Topic = (typeof TOPICS)[number];
 const DedupeSchema = z.object({
   groups: z.array(z.array(z.string())).describe("Each inner list holds 2+ ids that report the same underlying event"),
   categories: z
-    .array(z.object({ id: z.string(), category: z.enum(TOPICS) }))
+    .array(
+      z.object({
+        id: z.string(),
+        category: z.enum(TOPICS),
+        us_reader: z.boolean().default(true).describe("True if an American reader would care about this story in this section (see the US focus rules)"),
+      }),
+    )
     .describe("One entry per cluster id: the section the story belongs in, judged by its content"),
 });
 
@@ -167,11 +173,17 @@ const DEDUPE_SYSTEM = `You are the desk editor sorting news story clusters for a
 Task 1 - categories: for EVERY cluster id, decide the section by what the story is about:
 - tech: technology, AI, software, gadgets, internet platforms' products, cybersecurity, science and space (e.g. rocket launches, NASA, SpaceX missions). Medical science belongs in health.
 - finance: markets, the economy, company business news and earnings, deals, jobs data, central banks, crypto.
-- politics: United States government and politics: Congress, the White House, elections, courts, federal and state policy.
+- politics: United States government and politics only: Congress, the White House, elections, courts, federal and state policy. Other countries' politics and elections go in world.
 - world: international affairs and other countries' news: diplomacy, wars, foreign governments and elections, global disasters.
 - health: medicine and public health: diseases and outbreaks (anywhere in the world), medical research and studies, drugs, vaccines and FDA approvals, hospitals, health insurance and care costs, nutrition and mental health. A health bill being voted on in Congress is politics; a drugmaker's earnings are finance.
 - other: anything else (sports, entertainment, celebrity, lifestyle, weather, local crime). These are left out of the briefing.
 When a story fits two sections, pick the one a reader would look in first (a US tariff vote is politics; its market reaction is finance).
+
+US focus: the readers are in the United States. For each cluster also answer us_reader:
+- finance: true for US markets and indexes, the Fed, US economic data, US companies and big global companies Americans invest in, and global events that move US markets (oil prices, China's economy, the ECB or Bank of Japan, major trade news). false for local stories about other countries' markets, currencies, bonds, retailers or economic data that don't affect US investors (e.g. New Zealand inflation expectations, an Australian retailer's debts).
+- politics: always true (other countries' politics belongs in world).
+- health: true for US health news (FDA, CDC, NIH, drug prices, Medicare, Medicaid, insurance, US outbreaks) and for major global research breakthroughs or big outbreaks and WHO alerts. false for other countries' local health-system news (e.g. a UK NHS waiting-list update).
+- tech and world: always true.
 
 Task 2 - duplicates: group together clusters that report the SAME underlying event (same incident, announcement, decision or market move), even when worded differently, and only when you put them in the same section. Do not group stories that are merely related (e.g. a company's earnings and a separate lawsuit against it). A follow-up development is a separate event: reactions, petitions, support or backlash, investigations, a successor being named, or market fallout after the original news each stay in their own cluster, even though they share the same people and company. Only output groups of two or more ids.`;
 
@@ -180,6 +192,8 @@ export interface DeskResult {
   groups: string[][];
   /** Content-based section per cluster id; "other" means leave it out. */
   categories: Record<string, Topic>;
+  /** Cluster ids judged of little interest to American readers in their section (ranked lower, not dropped). */
+  notUs?: string[];
 }
 
 /**
@@ -202,12 +216,17 @@ export async function findDuplicateGroups(byCategory: Partial<Record<Category, C
     const out = await generateJson({ model: PRIMARY_MODEL, system: DEDUPE_SYSTEM, prompt, schema: DedupeSchema, maxOutputTokens: 12_000 });
     const feedCategory = new Map(entries.flatMap(([cat, cl]) => cl.map((c) => [c.id, cat as Topic] as const)));
     const categories: Record<string, Topic> = {};
-    for (const { id, category } of out.categories) if (feedCategory.has(id)) categories[id] = category;
+    const notUs: string[] = [];
+    for (const { id, category, us_reader } of out.categories) {
+      if (!feedCategory.has(id)) continue;
+      categories[id] = category;
+      if (us_reader === false) notUs.push(id);
+    }
     const finalOf = (id: string) => categories[id] ?? feedCategory.get(id);
     const groups = out.groups
       .map((g) => [...new Set(g)].filter((id) => feedCategory.has(id)))
       .filter((g) => g.length >= 2 && finalOf(g[0]) !== "other" && g.every((id) => finalOf(id) === finalOf(g[0])));
-    return { groups, categories };
+    return { groups, categories, notUs };
   } catch (err) {
     console.warn("[desk] skipped:", err instanceof Error ? err.message : err);
     return { groups: [], categories: {} };

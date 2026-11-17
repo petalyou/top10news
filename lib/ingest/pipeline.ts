@@ -50,6 +50,12 @@ const SPARES = 4;
 /** Normal fetch window, and the wider window used only to backfill a category that came up short. */
 const WINDOW_HOURS = 4;
 const BACKFILL_WINDOW_HOURS = 12;
+/**
+ * US focus: stories the desk marked as of little interest to American readers (another country's
+ * local market data, a foreign retailer's debts, a UK NHS update) keep only this share of their
+ * score. They aren't dropped, so a quiet hour still fills 10.
+ */
+const NOT_US_WEIGHT = 0.4;
 
 export interface IngestDeps {
   fetch?: typeof fetchArticles;
@@ -97,6 +103,8 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
   //    The same request re-files each candidate by content (general feeds mix topics) and
   //    drops off-topic ones (sport, entertainment...).
   const desk = await dedupeFn(candidates);
+  // Stories the desk judged of little interest to US readers in their section rank lower.
+  const notUs = new Set(desk.notUs ?? []);
   const candidateIds = new Set(CATEGORIES.flatMap((c) => candidates[c].map((x) => x.id)));
   const kept = lexical.filter((c) => candidateIds.has(c.id) && desk.categories[c.id] !== "other");
   for (const c of kept) {
@@ -128,7 +136,12 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
       // ...and so do stories Google News is featuring right now.
       return {
         c,
-        s: c.score * freshnessMultiplier(hoursInTop(prevs[i], key)) * trendMultiplier(trendFor(c, trends)) * googleMultiplier(googleRankFor(c, googleNews)),
+        s:
+          c.score *
+          freshnessMultiplier(hoursInTop(prevs[i], key)) *
+          trendMultiplier(trendFor(c, trends)) *
+          googleMultiplier(googleRankFor(c, googleNews)) *
+          (notUs.has(c.id) ? NOT_US_WEIGHT : 1),
       };
     });
     adjusted.sort((a, b) => b.s - a.s || b.c.distinctOutlets - a.c.distinctOutlets || b.c.newestAt.getTime() - a.c.newestAt.getTime());
