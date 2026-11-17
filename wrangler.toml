@@ -38,3 +38,7 @@ EDITION_TIMEZONE = "America/New_York"
 SHOW_SPONSORS = "false"
 [triggers]
 crons = ["40 * * * *"]
+[[d1_databases]]
+binding = "VOTES"
+database_name = "top10-votes"
+database_id = "ce10881c-94e1-4f1c-8e38-f4d3428f72ea"
