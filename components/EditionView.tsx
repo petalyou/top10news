@@ -8,7 +8,7 @@ import { formatEditionWindow, formatFullDate, formatOptionLabel, formatTimeLabel
 import { getDictionary, LOCALE_LABEL, LOCALE_NAME, LOCALE_TAG, LOCALES, localePath, type Locale } from "@/lib/i18n";
 import type { ActiveSponsors } from "@/lib/sponsors";
 import { CATEGORIES, DEFAULT_CATEGORY, type Category, type Edition } from "@/lib/types";
-import { BookmarkIcon, CheckIcon, ChevronDownIcon, ClockIcon, CloseIcon, MoonIcon, SunIcon } from "./icons";
+import { BookmarkIcon, CheckIcon, ChevronDownIcon, ClockIcon, CloseIcon, GlobeIcon, MoonIcon, SunIcon } from "./icons";
 import { FlipText } from "./FlipText";
 import { CategoryTitleSponsor, SponsoredBriefingCard } from "./sponsors";
 import { StoryCard, type Vote } from "./StoryCard";
@@ -542,29 +542,37 @@ export function EditionView({ locale, edition, requestedKey, initialCategory, op
               <span className="font-semibold text-stone-700 dark:text-stone-200 tabular-nums">{countdown}</span>
             </span>
             {showNewTag && (
-              <span key={arrival} role="status" className={`${newTagClass} hidden sm:inline-block`}>
+              <span key={`t${arrival}`} role="status" className={`${newTagClass} hidden sm:inline-block`}>
                 {t.newEdition}
               </span>
             )}
           </div>
 
-          <nav aria-label="Language" className="ml-auto flex items-center gap-1">
-            {LOCALES.map((l) => (
-              <Link
-                key={l}
-                href={editionHref(l, requestedKey, category)}
-                hrefLang={LOCALE_TAG[l]}
-                lang={LOCALE_TAG[l]}
-                title={LOCALE_LABEL[l]}
-                aria-current={l === locale ? "true" : undefined}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-bold tracking-[0.12em] transition ${
-                  l === locale ? "pill-active" : "text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white"
-                }`}
+          {/* Language: eight versions don't fit as pills on phones, so a native menu (same trick as the edition picker). */}
+          <div className="ml-auto flex items-center">
+            <label htmlFor="language-select" className="sr-only">
+              Language
+            </label>
+            <span className="relative rounded-full focus-within:ring-2 focus-within:ring-amber-500 group">
+              <span aria-hidden="true" className="soft-pill flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-[0.12em] text-stone-600 group-hover:text-stone-900 dark:text-stone-300 dark:group-hover:text-white transition">
+                <GlobeIcon className="w-3.5 h-3.5" />
+                <span lang={LOCALE_TAG[locale]}>{LOCALE_NAME[locale]}</span>
+                <ChevronDownIcon className="w-3 h-3" />
+              </span>
+              <select
+                id="language-select"
+                value={locale}
+                onChange={(e) => router.push(editionHref(e.target.value as Locale, requestedKey, category))}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-base"
               >
-                {LOCALE_NAME[l]}
-              </Link>
-            ))}
-          </nav>
+                {LOCALES.map((l) => (
+                  <option key={l} value={l} lang={LOCALE_TAG[l]}>
+                    {LOCALE_LABEL[l]}
+                  </option>
+                ))}
+              </select>
+            </span>
+          </div>
         </div>
       </header>
 

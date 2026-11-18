@@ -14,8 +14,8 @@ export interface Synthesis {
 
 /**
  * Gemini request budget per hourly run: 1 duplicate check (all categories at once) + 1 write-up
- * per category = 6 requests, about 120 a day over the 20 daily editions. Flash-Lite's free tier
- * allows ~500 a day; the fallback model (also Flash-Lite) is only used when the primary fails.
+ * per category = 6 requests, plus 1 translation per category (translate.ts) = 11 requests, about
+ * 220 a day over the 20 daily editions. Flash-Lite's free tier allows ~500 a day; the fallback model (also Flash-Lite) is only used when the primary fails.
  */
 const PRIMARY_MODEL = GEMINI_MODEL;
 const FALLBACK_MODEL = GEMINI_FALLBACK_MODEL;

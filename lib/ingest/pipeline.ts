@@ -10,6 +10,7 @@ import { firstSeenFor, freshnessMultiplier, hoursInTop } from "./freshness";
 import { fetchArticles } from "./fetch";
 import { findDuplicateGroups, synthesizeCategory, type Synthesis } from "./synthesize";
 import { pickHot } from "./hot";
+import { translateStories } from "./translate";
 import { fetchTrends, trendFor, trendMultiplier, type Trend } from "./trends";
 import { fetchGoogleNews, googleMultiplier, googleRankFor, type GoogleStory } from "./google-news";
 
@@ -63,6 +64,7 @@ export interface IngestDeps {
   dedupe?: typeof findDuplicateGroups;
   trends?: () => Promise<Trend[]>;
   googleNews?: () => Promise<GoogleStory[]>;
+  translate?: typeof translateStories;
 }
 
 export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: IngestDeps } = {}): Promise<IngestResult> {
@@ -72,6 +74,7 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
   // Tests that stub the feeds also stay off the network for Trends unless they pass their own.
   const trendsFn = opts.deps?.trends ?? (opts.deps?.fetch ? async () => [] : fetchTrends);
   const googleNewsFn = opts.deps?.googleNews ?? (opts.deps?.fetch ? async () => [] : fetchGoogleNews);
+  const translateFn = opts.deps?.translate ?? (opts.deps?.fetch ? null : translateStories);
   const started = Date.now();
   const now = opts.now ?? new Date();
   const hour = opts.hour ?? targetHourFor(now);
@@ -229,6 +232,18 @@ export async function runHourlyIngest(opts: { now?: Date; hour?: Date; deps?: In
 
   // Nothing written anywhere (e.g. Gemini quota used up): keep the current edition live.
   if (!wroteAny) throw new Error("Gemini wrote no stories for any category; nothing published");
+
+  // 4b. Japanese, German, French, Korean and Portuguese: one request per freshly written
+  //     category, one at a time (stays under the per-minute limit). A failure leaves English.
+  if (translateFn) {
+    for (const [category, stories] of entries) {
+      if (!stories.length || fallbackCategories.includes(category)) continue;
+      const extra = await translateFn(category, stories).catch(() => []);
+      stories.forEach((s, i) => {
+        if (extra[i] && Object.keys(extra[i]).length) s.i18n = { ...s.i18n, ...extra[i] };
+      });
+    }
+  }
 
   // 5. Publish: hour file + index + latest.json. Readers see it from :00.
   const edition: Edition = {

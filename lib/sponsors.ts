@@ -31,7 +31,17 @@ export const SponsorSchema = z.object({
   end_date: DATE,
   is_active: z.boolean().default(true),
   /** Optional translations; any field left out falls back to English. */
-  i18n: z.object({ es: SponsorTextSchema.optional(), zh: SponsorTextSchema.optional() }).optional(),
+  i18n: z
+    .object({
+      es: SponsorTextSchema.optional(),
+      zh: SponsorTextSchema.optional(),
+      ja: SponsorTextSchema.optional(),
+      de: SponsorTextSchema.optional(),
+      fr: SponsorTextSchema.optional(),
+      ko: SponsorTextSchema.optional(),
+      pt: SponsorTextSchema.optional(),
+    })
+    .optional(),
 });
 
 export type SponsorRecord = z.infer<typeof SponsorSchema>;

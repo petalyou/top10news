@@ -62,8 +62,9 @@ export function parseHourKey(key: string | null | undefined): Date | null {
   return toHourKey(date) === key ? date : null;
 }
 
-type Lang = "en" | "es" | "zh";
-const TAG: Record<Lang, string> = { en: "en-US", es: "es-ES", zh: "zh-CN" };
+type Lang = "en" | "es" | "zh" | "ja" | "de" | "fr" | "ko" | "pt";
+const TAG: Record<Lang, string> = { en: "en-US", es: "es-ES", zh: "zh-CN", ja: "ja-JP", de: "de-DE", fr: "fr-FR", ko: "ko-KR", pt: "pt-BR" };
+const CJK = new Set<Lang>(["zh", "ja", "ko"]);
 
 /** A time zone, or `null` for the viewer's own zone (use only in the browser). */
 type Zone = string | null;
@@ -90,8 +91,8 @@ export function formatOptionLabel(d: Date, lang: Lang = "en", tz: Zone = DISPLAY
 
 /** "Thursday, Nov 12, 2026 at 2:00 PM EST" / "jueves, 12 nov 2026, 14:00 EST" / "2026年11月12日星期四 14:00 EST" */
 export function formatFullDate(d: Date, lang: Lang = "en", tz: Zone = DISPLAY_TZ): string {
-  const date = fmt(lang, tz, { weekday: "long", month: lang === "zh" ? "long" : "short", day: "numeric", year: "numeric" }).format(d);
-  const joiner = lang === "en" ? " at " : lang === "es" ? ", " : " ";
+  const date = fmt(lang, tz, { weekday: "long", month: CJK.has(lang) ? "long" : "short", day: "numeric", year: "numeric" }).format(d);
+  const joiner = lang === "en" ? " at " : CJK.has(lang) ? " " : ", ";
   return `${date}${joiner}${formatTimeLabel(d, lang, tz)}`;
 }
 

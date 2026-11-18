@@ -28,7 +28,9 @@ export interface StoryText {
 }
 
 /** Translations written by the hourly job. Missing languages fall back to English. */
-export type StoryTranslations = Partial<Record<"es" | "zh", StoryText>>;
+export const TRANSLATED_LOCALES = ["es", "zh", "ja", "de", "fr", "ko", "pt"] as const;
+export type TranslatedLocale = (typeof TRANSLATED_LOCALES)[number];
+export type StoryTranslations = Partial<Record<TranslatedLocale, StoryText>>;
 
 export interface Story {
   /** Stable per edition: "<hourKey>-<category>-<rank>" (used by bookmarks). */
@@ -51,7 +53,7 @@ export interface Story {
 }
 
 /** Story with headline/summary/whyItMatters in the reader's language (English fallback). */
-export function localizeStory(story: Story, locale: "en" | "es" | "zh"): Story {
+export function localizeStory(story: Story, locale: "en" | TranslatedLocale): Story {
   const t = locale === "en" ? undefined : story.i18n?.[locale];
   return t ? { ...story, ...t } : story;
 }

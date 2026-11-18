@@ -75,3 +75,10 @@ export const ThumbDownIcon = ({ className = "w-4 h-4" }: P) => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 14V3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-3Zm0 0-4.2 7.4a1.6 1.6 0 0 1-2.9-1.1l.6-5.3H5a2 2 0 0 1-2-2.3l1.2-7.5A2.6 2.6 0 0 1 6.8 3H17" />
   </svg>
 );
+
+export const GlobeIcon = ({ className = "w-3.5 h-3.5" }: P) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" strokeWidth={1.8} />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z" />
+  </svg>
+);

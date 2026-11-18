@@ -40,6 +40,13 @@ async function main() {
       deps: {
         fetch: async (now = new Date()) => ({ articles: articlesFor(events, now), feedErrors: [] }),
         dedupe: async () => ({ groups: [], categories: {} }),
+        // The other languages come from a second pass; the demo marks them so you can see which one shows.
+        translate: async (_c, stories) =>
+          stories.map((s) =>
+            Object.fromEntries(
+              (["ja", "de", "fr", "ko", "pt"] as const).map((l) => [l, { headline: `[Demo ${l.toUpperCase()}] ${s.headline.replace(/^\[Demo\] /, "")}`, summary: s.summary, whyItMatters: s.whyItMatters }]),
+            ),
+          ),
         synthesize: async (_c, clusters) =>
           clusters.map((c) => ({
             headline: `[Demo] ${c.articles[0].title}`,

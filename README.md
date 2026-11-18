@@ -2,7 +2,7 @@
 
 A "10-second grab-and-go" news site: every hour it locks the 10 most-covered stories in **Finance & Markets**, **Tech & AI**, **Politics**, **World** and **Health** into an immutable snapshot you can revisit with the Time Machine (`/?t=YYYY-MM-DD-HH`, UTC). No database, no accounts, no sign-ups.
 
-**Gemini quota.** Each hourly run makes 6 requests (1 duplicate check + 1 per category), about 120 a day over 20 daily editions. Flash-Lite's free tier allows roughly 15 requests/minute and 500/day. Don't switch `GEMINI_MODEL` to a Flash (non-Lite) model on the free tier: those allow only ~20 requests a day.
+**Gemini quota.** Each hourly run makes 11 requests (1 duplicate check + 1 write-up per category + 1 translation per category), about 220 a day over 20 daily editions. Flash-Lite's free tier allows roughly 15 requests/minute and 500/day. Don't switch `GEMINI_MODEL` to a Flash (non-Lite) model on the free tier: those allow only ~20 requests a day.
 
 **Schedule and times.** Editions publish hourly from 5 AM through 12 AM (midnight) Eastern; there are none from 1 AM to 4 AM (`EDITION_TIMEZONE`, default `America/New_York`; hours in `lib/hour.ts`). The hourly job still runs every hour and simply skips the quiet hours (`skipped_off_hours`); a manual run for a specific hour always runs. Readers see every time in their own time zone; `NEXT_PUBLIC_DISPLAY_TIMEZONE` is only the fallback before the page loads in the browser.
 
@@ -21,7 +21,7 @@ Real data: set `GEMINI_API_KEY` (free at aistudio.google.com/apikey), then `npm 
 
 ## Languages
 
-English lives at `/`, Spanish at `/es`, Simplified Chinese at `/zh` (all accept `?t=` and `?c=`). Interface strings are in `lib/i18n.ts`. Story text is translated by the hourly job in the same Gemini call that writes the English (`i18n.es` / `i18n.zh` on each story); a missing translation falls back to English. Sponsors can add optional `i18n` overrides in `data/sponsors.json`. Legal pages are English-only and labeled as such.
+English lives at `/`, with `/es` Spanish, `/zh` Simplified Chinese, `/ja` Japanese, `/de` German, `/fr` French, `/ko` Korean and `/pt` Brazilian Portuguese (all accept `?t=` and `?c=`). Interface strings are in `lib/i18n.ts`. Spanish and Chinese are written in the same Gemini call as the English; the other five come from one extra translation request per category, sent one at a time (`lib/ingest/translate.ts`). Translations are stored in `i18n.<lang>` on each story; a missing one falls back to English. Sponsors can add optional `i18n` overrides in `data/sponsors.json`. Legal pages are English-only and labeled as such.
 
 ## Storage layout
 
@@ -41,7 +41,7 @@ On Cloudflare, reads and writes go through the R2 bucket bound as `SNAPSHOTS` (`
 2. **Cluster** headlines per category by token overlap, then one Gemini request (all categories at once) merges clusters that describe the same event in different words.
 3. **Score velocity:** distinct outlets × source tier (tier 1 = 3, tier 2 = 2, tier 3 = 1), full weight for coverage in the last 90 minutes, 0.35× for older.
 4. **Freshness + rank diff** against the previous hour's file (`lib/ingest/freshness.ts`). A story in the Top 10 for the first time gets ×1.25; stories keep full score for their first 3 hours in the Top 10, then lose 15% per extra hour (floor 0.4×), so new stories overtake stale ones while a still-exploding story can hold on. Each story records `firstSeen`. Tune with `RANK_NEW_BOOST`, `RANK_GRACE_HOURS`, `RANK_DECAY_PER_HOUR`, `RANK_DECAY_FLOOR`. Then the Top 10 is cut and marked `NEW`, `+N`, `-N`, `=`. If a category has fewer than 10 distinct stories in the 4-hour window (slow news hour, feed outage), that category is backfilled from a 12-hour window so every list fills all 10 slots.
-5. **Synthesize** with Gemini, one request per category: neutral headline, 2 original sentences, one "Why it matters" line, plus Spanish and Simplified Chinese versions of all three. Retries once on rate limits, then falls back to `gemini-3.1-flash-lite` (`GEMINI_FALLBACK_MODEL`); if both fail nothing is written and the previous edition stays live.
+5. **Synthesize** with Gemini, one request per category: neutral headline, 2 original sentences, one "Why it matters" line, plus Spanish and Simplified Chinese versions of all three (Japanese, German, French, Korean and Portuguese follow in a separate translation pass). Retries once on rate limits, then falls back to `gemini-3.1-flash-lite` (`GEMINI_FALLBACK_MODEL`); if both fail nothing is written and the previous edition stays live.
 6. **Publish** the *next* hour's file, then `index.json`, then `latest.json`. The site only shows an edition once its hour has started, so it flips at :00. Existing hour files are never rewritten.
 
 ## Sponsors (`data/sponsors.json`)
