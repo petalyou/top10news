@@ -6,7 +6,7 @@ export const DEFAULT_CATEGORY: Category = CATEGORIES[0];
 export const CATEGORY_META: Record<Category, { title: string; badge: string }> = {
   tech: { title: "Top 10 Tech & AI", badge: "Tech & AI" },
   finance: { title: "Top 10 Finance & Markets", badge: "Finance & Markets" },
-  politics: { title: "Top 10 Politics", badge: "Politics" },
+  politics: { title: "Top 10 US Politics", badge: "US Politics" },
   world: { title: "Top 10 World", badge: "World" },
   health: { title: "Top 10 Health", badge: "Health" },
 };
