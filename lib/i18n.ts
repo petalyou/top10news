@@ -16,6 +16,27 @@ export const LOCALE_ALTERNATES: Record<string, string> = { en: "/", es: "/es", "
 export const LOCALE_NAME: Record<Locale, string> = { en: "EN", es: "ES", zh: "中文", ja: "日本語", de: "DE", fr: "FR", ko: "한국어", pt: "PT" };
 export const LOCALE_LABEL: Record<Locale, string> = { en: "English", es: "Español", zh: "简体中文", ja: "日本語", de: "Deutsch", fr: "Français", ko: "한국어", pt: "Português" };
 
+/** First-visit tooltip, written in the language it offers. */
+export const LOCALE_NUDGE: Record<Locale, string> = {
+  en: "Read in English?",
+  es: "¿Leer en español?",
+  zh: "切换到简体中文？",
+  ja: "日本語で読みますか？",
+  de: "Auf Deutsch lesen?",
+  fr: "Lire en français ?",
+  ko: "한국어로 읽으시겠어요?",
+  pt: "Ler em português?",
+};
+
+/** The first supported language in the browser's list ("pt-BR" -> pt, "zh-TW" -> zh), or null. */
+export function preferredLocale(languages: readonly string[]): Locale | null {
+  for (const tag of languages) {
+    const base = tag.toLowerCase().split("-")[0];
+    if (isLocale(base)) return base;
+  }
+  return null;
+}
+
 /** "/" for English, "/es", "/zh", ... otherwise. */
 export const localePath = (locale: Locale) => (locale === DEFAULT_LOCALE ? "/" : `/${locale}`);
 

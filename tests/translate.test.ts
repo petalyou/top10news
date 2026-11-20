@@ -74,3 +74,10 @@ test("every language has a complete interface dictionary", () => {
   const keys = (o: object) => Object.keys(o).sort();
   for (const l of LOCALES) assert.deepEqual(keys(getDictionary(l)), keys(getDictionary("en")), l);
 });
+
+test("the first-visit tooltip offers the first supported browser language", async () => {
+  const { preferredLocale } = await import("../lib/i18n");
+  assert.equal(preferredLocale(["pt-BR", "en-US"]), "pt");
+  assert.equal(preferredLocale(["it-IT", "zh-TW", "en"]), "zh");
+  assert.equal(preferredLocale(["it-IT"]), null);
+});
